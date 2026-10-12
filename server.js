@@ -1,3 +1,4 @@
+
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -9,217 +10,618 @@ const Database = require('better-sqlite3');
 const PORT = Number(process.env.PORT || 3000);
 const HOST_PIN = process.env.HOST_PIN || 'change-this-to-a-long-private-password';
 const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, 'data', 'quiz.sqlite');
+
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
+
 db.exec(`
-CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS teams (
-  id TEXT PRIMARY KEY, name TEXT NOT NULL COLLATE NOCASE UNIQUE,
-  members_json TEXT NOT NULL, rep_index INTEGER NOT NULL DEFAULT 0,
-  token_hash TEXT NOT NULL, score INTEGER NOT NULL DEFAULT 0,
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+  members_json TEXT NOT NULL,
+  rep_index INTEGER NOT NULL DEFAULT 0,
+  token_hash TEXT NOT NULL,
+  score INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL
 );
+
 CREATE TABLE IF NOT EXISTS questions (
-  id TEXT PRIMARY KEY, position INTEGER NOT NULL, text TEXT NOT NULL,
-  options_json TEXT NOT NULL, correct INTEGER NOT NULL, points INTEGER NOT NULL,
-  category TEXT NOT NULL, time_limit INTEGER NOT NULL
+  id TEXT PRIMARY KEY,
+  position INTEGER NOT NULL,
+  text TEXT NOT NULL,
+  options_json TEXT NOT NULL,
+  correct INTEGER NOT NULL,
+  points INTEGER NOT NULL,
+  category TEXT NOT NULL,
+  time_limit INTEGER NOT NULL
 );
+
 CREATE TABLE IF NOT EXISTS score_history (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, team_id TEXT NOT NULL,
-  question_id TEXT, points INTEGER NOT NULL, created_at TEXT NOT NULL,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  team_id TEXT NOT NULL,
+  question_id TEXT,
+  points INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
   FOREIGN KEY(team_id) REFERENCES teams(id) ON DELETE CASCADE
 );
 `);
+
 const getSetting = (k, fallback) => {
   const row = db.prepare('SELECT value FROM settings WHERE key=?').get(k);
   return row ? row.value : fallback;
 };
-const setSetting = (k, v) => db.prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(k, String(v));
-if (!getSetting('room_code')) setSetting('room_code', crypto.randomBytes(3).toString('hex').toUpperCase());
+
+const setSetting = (k, v) =>
+  db.prepare(`
+    INSERT INTO settings(key,value) VALUES(?,?)
+    ON CONFLICT(key) DO UPDATE SET value=excluded.value
+  `).run(k, String(v));
+
+if (!getSetting('room_code')) {
+  setSetting('room_code', crypto.randomBytes(3).toString('hex').toUpperCase());
+}
 if (!getSetting('current_index')) setSetting('current_index', '0');
 if (!getSetting('buzzer_open')) setSetting('buzzer_open', '0');
 if (!getSetting('revealed')) setSetting('revealed', '0');
 
 let buzzes = [];
 let hostSocketId = null;
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true } });
+
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+
 app.get('/health', (_req, res) => res.json({ ok: true }));
-app.get('/host', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/projector', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/register', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/buzzer', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/host', (_req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'index.html'))
+);
+app.get('/projector', (_req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'index.html'))
+);
+app.get('/register', (_req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'index.html'))
+);
+app.get('/buzzer', (_req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'index.html'))
+);
 
 const now = () => new Date().toISOString();
 const id = () => crypto.randomBytes(12).toString('hex');
-const hashToken = token => crypto.createHash('sha256').update(token).digest('hex');
+const hashToken = token =>
+  crypto.createHash('sha256').update(token).digest('hex');
+
 function allQuestions() {
-  return db.prepare('SELECT * FROM questions ORDER BY position,id').all().map(q => ({
-    id:q.id, text:q.text, options:JSON.parse(q.options_json), correct:q.correct,
-    points:q.points, category:q.category, time:q.time_limit, position:q.position
-  }));
+  return db.prepare('SELECT * FROM questions ORDER BY position,id')
+    .all()
+    .map(q => ({
+      id: q.id,
+      text: q.text,
+      options: JSON.parse(q.options_json),
+      correct: q.correct,
+      points: q.points,
+      category: q.category,
+      time: q.time_limit,
+      position: q.position
+    }));
 }
-function allTeams(includePrivate=false) {
-  return db.prepare('SELECT * FROM teams ORDER BY created_at').all().map(t => ({
-    id:t.id, name:t.name, members: includePrivate ? JSON.parse(t.members_json) : undefined,
-    memberCount:JSON.parse(t.members_json).length, repIndex:t.rep_index, score:t.score,
-    createdAt:t.created_at
-  }));
+
+function allTeams(includePrivate = false) {
+  return db.prepare('SELECT * FROM teams ORDER BY created_at')
+    .all()
+    .map(t => ({
+      id: t.id,
+      name: t.name,
+      members: includePrivate ? JSON.parse(t.members_json) : undefined,
+      memberCount: JSON.parse(t.members_json).length,
+      repIndex: t.rep_index,
+      score: t.score,
+      createdAt: t.created_at
+    }));
 }
+
 function currentQuestion() {
   const qs = allQuestions();
-  const ix = Math.max(0, Math.min(Number(getSetting('current_index','0')), qs.length - 1));
+  const ix = Math.max(
+    0,
+    Math.min(Number(getSetting('current_index', '0')), qs.length - 1)
+  );
   return qs[ix] || null;
 }
-function publicState(forHost=false) {
+
+function publicState(forHost = false) {
   const qs = allQuestions();
-  const ix = Number(getSetting('current_index','0'));
+  const ix = Number(getSetting('current_index', '0'));
   const q = qs[ix] || null;
+
   return {
-    roomCode:getSetting('room_code','QUIZ'), questions: forHost ? qs : qs.map(({correct, ...safe})=>safe),
-    currentIndex:ix, currentQuestion:q ? (forHost || getSetting('revealed','0')==='1' ? q : (({correct, ...safe})=>safe)(q)) : null,
-    buzzerOpen:getSetting('buzzer_open','0')==='1',
-    revealed:getSetting('revealed','0')==='1',
-    teams:allTeams(forHost),
-    buzzes:buzzes.map(b=>({teamId:b.teamId,teamName:db.prepare('SELECT name FROM teams WHERE id=?').get(b.teamId)?.name || 'Team',order:b.order,awarded:b.awarded})),
-    history: forHost ? db.prepare('SELECT h.*,t.name AS team_name FROM score_history h JOIN teams t ON t.id=h.team_id ORDER BY h.id DESC LIMIT 100').all() : []
+    roomCode: getSetting('room_code', 'QUIZ'),
+    questions: forHost
+      ? qs
+      : qs.map(({ correct, ...safe }) => safe),
+    currentIndex: ix,
+    currentQuestion: q
+      ? (
+          forHost || getSetting('revealed', '0') === '1'
+            ? q
+            : (({ correct, ...safe }) => safe)(q)
+        )
+      : null,
+    buzzerOpen: getSetting('buzzer_open', '0') === '1',
+    revealed: getSetting('revealed', '0') === '1',
+    teams: allTeams(forHost),
+    buzzes: buzzes.map(b => ({
+      teamId: b.teamId,
+      teamName:
+        db.prepare('SELECT name FROM teams WHERE id=?').get(b.teamId)?.name
+        || 'Team',
+      order: b.order,
+      awarded: b.awarded
+    })),
+    history: forHost
+      ? db.prepare(`
+          SELECT h.*, t.name AS team_name
+          FROM score_history h
+          JOIN teams t ON t.id = h.team_id
+          ORDER BY h.id DESC
+          LIMIT 100
+        `).all()
+      : []
   };
 }
+
 function broadcast() {
   io.emit('state', publicState(false));
-  if (hostSocketId) io.to(hostSocketId).emit('host:state', publicState(true));
+
+  if (hostSocketId) {
+    io.to(hostSocketId).emit('host:state', publicState(true));
+  }
 }
-function requireHost(socket) { return socket.data.isHost === true; }
-function emitError(socket, message) { socket.emit('app:error', {message}); }
+
+function requireHost(socket) {
+  return socket.data.isHost === true;
+}
+
+function emitError(socket, message) {
+  socket.emit('app:error', { message });
+}
 
 io.on('connection', socket => {
   socket.emit('state', publicState(false));
-  socket.on('host:login', ({pin}={}) => {
-    if (typeof pin !== 'string' || pin !== HOST_PIN) return emitError(socket, 'Incorrect host PIN.');
+
+  socket.on('host:login', ({ pin } = {}) => {
+    if (typeof pin !== 'string' || pin !== HOST_PIN) {
+      return emitError(socket, 'Incorrect host PIN.');
+    }
+
     if (hostSocketId && hostSocketId !== socket.id) {
       const old = io.sockets.sockets.get(hostSocketId);
-      if (old) old.emit('app:error', {message:'Host dashboard opened in another browser. This session is now the active host.'});
+
+      if (old) {
+        old.emit('app:error', {
+          message: 'Host dashboard opened in another browser. This session is now the active host.'
+        });
+      }
     }
+
     hostSocketId = socket.id;
     socket.data.isHost = true;
     socket.emit('host:login-ok', publicState(true));
     broadcast();
   });
-  socket.on('team:register', ({name, members, repIndex}={}) => {
-    if (typeof name !== 'string' || !name.trim() || name.trim().length>50) return emitError(socket,'Enter a team name (maximum 50 characters).');
-    if (!Array.isArray(members) || members.length<1 || members.length>10) return emitError(socket,'A team must have 1–10 members.');
-    const clean = members.map(m=>({name:String(m?.name||'').trim(),reg:String(m?.reg||'').trim()}));
-    if (clean.some(m=>!m.name||!m.reg||m.name.length>100||m.reg.length>40)) return emitError(socket,'Every member needs a full name and registration number.');
-    if (new Set(clean.map(m=>m.reg.toLowerCase())).size!==clean.length) return emitError(socket,'Registration numbers must be unique within the team.');
-    const rep = Number(repIndex);
-    if (!Number.isInteger(rep)||rep<0||rep>=clean.length) return emitError(socket,'Choose a valid representative.');
-    const teamId=id(), token=crypto.randomBytes(32).toString('hex');
-    try {
-      db.prepare('INSERT INTO teams(id,name,members_json,rep_index,token_hash,score,created_at) VALUES(?,?,?,?,?,?,?)')
-        .run(teamId,name.trim(),JSON.stringify(clean),rep,hashToken(token),0,now());
-    } catch(e) {
-      if (String(e.message).includes('UNIQUE')) return emitError(socket,'That team name is already registered.');
-      return emitError(socket,'Could not register team.');
+
+  socket.on('team:register', ({ name, members, repIndex } = {}) => {
+    if (
+      typeof name !== 'string' ||
+      !name.trim() ||
+      name.trim().length > 50
+    ) {
+      return emitError(
+        socket,
+        'Enter a team name (maximum 50 characters).'
+      );
     }
-    socket.emit('team:registered',{teamId,token,teamName:name.trim()});
+
+    if (!Array.isArray(members) || members.length < 1 || members.length > 10) {
+      return emitError(socket, 'A team must have 1–10 members.');
+    }
+
+    const clean = members.map(m => ({
+      name: String(m?.name || '').trim(),
+      reg: String(m?.reg || '').trim()
+    }));
+
+    if (
+      clean.some(
+        m => !m.name || !m.reg || m.name.length > 100 || m.reg.length > 40
+      )
+    ) {
+      return emitError(
+        socket,
+        'Every member needs a full name and registration number.'
+      );
+    }
+
+    if (new Set(clean.map(m => m.reg.toLowerCase())).size !== clean.length) {
+      return emitError(
+        socket,
+        'Registration numbers must be unique within the team.'
+      );
+    }
+
+    const rep = Number(repIndex);
+
+    if (!Number.isInteger(rep) || rep < 0 || rep >= clean.length) {
+      return emitError(socket, 'Choose a valid representative.');
+    }
+
+    const teamId = id();
+    const token = crypto.randomBytes(32).toString('hex');
+
+    try {
+      db.prepare(`
+        INSERT INTO teams(
+          id, name, members_json, rep_index, token_hash, score, created_at
+        ) VALUES(?,?,?,?,?,?,?)
+      `).run(
+        teamId,
+        name.trim(),
+        JSON.stringify(clean),
+        rep,
+        hashToken(token),
+        0,
+        now()
+      );
+    } catch (e) {
+      if (String(e.message).includes('UNIQUE')) {
+        return emitError(socket, 'That team name is already registered.');
+      }
+      return emitError(socket, 'Could not register team.');
+    }
+
+    socket.emit('team:registered', {
+      teamId,
+      token,
+      teamName: name.trim()
+    });
+
     broadcast();
   });
-  socket.on('team:resume', ({teamId,token}={}) => {
-    const team=db.prepare('SELECT id,name,token_hash FROM teams WHERE id=?').get(teamId);
-    if(!team || !token || hashToken(token)!==team.token_hash) return emitError(socket,'Team session not found. Ask the host to remove and re-register your team.');
-    socket.data.teamId=team.id;
-    socket.emit('team:resume-ok',{teamId:team.id,teamName:team.name});
+
+  socket.on('team:resume', ({ teamId, token } = {}) => {
+    const team = db.prepare(
+      'SELECT id,name,token_hash FROM teams WHERE id=?'
+    ).get(teamId);
+
+    if (!team || !token || hashToken(token) !== team.token_hash) {
+      return emitError(
+        socket,
+        'Team session not found. Ask the host to remove and re-register your team.'
+      );
+    }
+
+    socket.data.teamId = team.id;
+    socket.emit('team:resume-ok', {
+      teamId: team.id,
+      teamName: team.name
+    });
   });
-  socket.on('team:buzz', ({teamId,token}={}) => {
-    const team=db.prepare('SELECT id,name,token_hash FROM teams WHERE id=?').get(teamId);
-    if(!team || !token || hashToken(token)!==team.token_hash) return emitError(socket,'Team authentication failed. Reopen the registration device.');
-    if(getSetting('buzzer_open','0')!=='1') return emitError(socket,'The host has not opened the buzzer.');
-    if(getSetting('revealed','0')==='1') return emitError(socket,'The answer has already been revealed.');
-    if(!currentQuestion()) return emitError(socket,'The host has not published a question.');
-    if(buzzes.some(b=>b.teamId===team.id)) return emitError(socket,'Your team has already buzzed for this question.');
-    const entry={teamId:team.id,at:Date.now(),order:buzzes.length+1,awarded:false};
+
+  socket.on('team:buzz', ({ teamId, token } = {}) => {
+    const team = db.prepare(
+      'SELECT id,name,token_hash FROM teams WHERE id=?'
+    ).get(teamId);
+
+    if (!team || !token || hashToken(token) !== team.token_hash) {
+      return emitError(
+        socket,
+        'Team authentication failed. Reopen the registration device.'
+      );
+    }
+
+    if (getSetting('buzzer_open', '0') !== '1') {
+      return emitError(socket, 'The host has not opened the buzzer.');
+    }
+
+    if (getSetting('revealed', '0') === '1') {
+      return emitError(socket, 'The answer has already been revealed.');
+    }
+
+    if (!currentQuestion()) {
+      return emitError(socket, 'The host has not published a question.');
+    }
+
+    if (buzzes.some(b => b.teamId === team.id)) {
+      return emitError(
+        socket,
+        'Your team has already buzzed for this question.'
+      );
+    }
+
+    const entry = {
+      teamId: team.id,
+      at: Date.now(),
+      order: buzzes.length + 1,
+      awarded: false
+    };
+
     buzzes.push(entry);
-    io.emit('buzz:accepted',{teamId:team.id,teamName:team.name,order:entry.order});
+
+    io.emit('buzz:accepted', {
+      teamId: team.id,
+      teamName: team.name,
+      order: entry.order
+    });
+
     broadcast();
   });
+
   socket.on('host:question:save', payload => {
-    if(!requireHost(socket)) return emitError(socket,'Host login required.');
-    const q=payload||{};
-    if(typeof q.text!=='string'||!q.text.trim()||!Array.isArray(q.options)||q.options.length!==4||q.options.some(x=>!String(x).trim())) return emitError(socket,'Enter a question and all four options.');
-    const qid=q.id||id();
-    const existing=db.prepare('SELECT id,position FROM questions WHERE id=?').get(qid);
-    const position=existing?existing.position:db.prepare('SELECT COALESCE(MAX(position),-1)+1 AS n FROM questions').get().n;
-    db.prepare(`INSERT INTO questions(id,position,text,options_json,correct,points,category,time_limit) VALUES(?,?,?,?,?,?,?,?)
-      ON CONFLICT(id) DO UPDATE SET text=excluded.text,options_json=excluded.options_json,correct=excluded.correct,points=excluded.points,category=excluded.category,time_limit=excluded.time_limit`)
-      .run(qid,position,q.text.trim(),JSON.stringify(q.options.map(x=>String(x).trim())),Math.max(0,Math.min(3,Number(q.correct)||0)),Math.max(1,Number(q.points)||10),String(q.category||'General').slice(0,60),Math.max(5,Number(q.time)||30));
-    if(!currentQuestion())setSetting('current_index','0');
+    if (!requireHost(socket)) {
+      return emitError(socket, 'Host login required.');
+    }
+
+    const q = payload || {};
+
+    if (
+      typeof q.text !== 'string' ||
+      !q.text.trim() ||
+      !Array.isArray(q.options) ||
+      q.options.length !== 4 ||
+      q.options.some(x => !String(x).trim())
+    ) {
+      return emitError(socket, 'Enter a question and all four options.');
+    }
+
+    const qid = q.id || id();
+    const existing = db.prepare(
+      'SELECT id,position FROM questions WHERE id=?'
+    ).get(qid);
+
+    const position = existing
+      ? existing.position
+      : db.prepare(
+          'SELECT COALESCE(MAX(position),-1)+1 AS n FROM questions'
+        ).get().n;
+
+    db.prepare(`
+      INSERT INTO questions(
+        id, position, text, options_json, correct, points, category, time_limit
+      ) VALUES(?,?,?,?,?,?,?,?)
+      ON CONFLICT(id) DO UPDATE SET
+        text=excluded.text,
+        options_json=excluded.options_json,
+        correct=excluded.correct,
+        points=excluded.points,
+        category=excluded.category,
+        time_limit=excluded.time_limit
+    `).run(
+      qid,
+      position,
+      q.text.trim(),
+      JSON.stringify(q.options.map(x => String(x).trim())),
+      Math.max(0, Math.min(3, Number(q.correct) || 0)),
+      Math.max(1, Number(q.points) || 10),
+      String(q.category || 'General').slice(0, 60),
+      Math.max(5, Number(q.time) || 30)
+    );
+
+    if (!currentQuestion()) setSetting('current_index', '0');
+
     broadcast();
   });
-  socket.on('host:question:delete', ({id:qid}={}) => {
-    if(!requireHost(socket))return emitError(socket,'Host login required.');
-    const ix=allQuestions().findIndex(q=>q.id===qid);
-    if(ix<0)return;
+
+  socket.on('host:question:delete', ({ id: qid } = {}) => {
+    if (!requireHost(socket)) {
+      return emitError(socket, 'Host login required.');
+    }
+
+    const ix = allQuestions().findIndex(q => q.id === qid);
+    if (ix < 0) return;
+
     db.prepare('DELETE FROM questions WHERE id=?').run(qid);
-    const count=allQuestions().length;setSetting('current_index',String(Math.max(0,Math.min(Number(getSetting('current_index','0')),count-1))));
-    buzzes=[];setSetting('buzzer_open','0');setSetting('revealed','0');broadcast();
-  });
-  socket.on('host:question:move', ({id:qid,delta}={}) => {
-    if(!requireHost(socket))return emitError(socket,'Host login required.');
-    const qs=allQuestions(), i=qs.findIndex(q=>q.id===qid), j=i+Number(delta);
-    if(i<0||j<0||j>=qs.length)return;
-    const a=qs[i],b=qs[j];
-    const update=db.prepare('UPDATE questions SET position=? WHERE id=?');
-    const temp=-999999;db.transaction(()=>{update.run(temp,a.id);update.run(a.position,b.id);update.run(b.position,a.id);})();
-    const cur=Number(getSetting('current_index','0'));setSetting('current_index',String(cur===i?j:cur===j?i:cur));
+
+    const count = allQuestions().length;
+
+    setSetting(
+      'current_index',
+      String(
+        Math.max(
+          0,
+          Math.min(Number(getSetting('current_index', '0')), count - 1)
+        )
+      )
+    );
+
+    buzzes = [];
+    setSetting('buzzer_open', '0');
+    setSetting('revealed', '0');
     broadcast();
   });
+
+  socket.on('host:question:move', ({ id: qid, delta } = {}) => {
+    if (!requireHost(socket)) {
+      return emitError(socket, 'Host login required.');
+    }
+
+    const qs = allQuestions();
+    const i = qs.findIndex(q => q.id === qid);
+    const j = i + Number(delta);
+
+    if (i < 0 || j < 0 || j >= qs.length) return;
+
+    const a = qs[i];
+    const b = qs[j];
+
+    const update = db.prepare(
+      'UPDATE questions SET position=? WHERE id=?'
+    );
+
+    const temp = -999999;
+
+    db.transaction(() => {
+      update.run(temp, a.id);
+      update.run(a.position, b.id);
+      update.run(b.position, a.id);
+    })();
+
+    const cur = Number(getSetting('current_index', '0'));
+
+    setSetting(
+      'current_index',
+      String(cur === i ? j : cur === j ? i : cur)
+    );
+
+    broadcast();
+  });
+
   socket.on('host:quiz:start-buzzer', () => {
-    if(!requireHost(socket))return emitError(socket,'Host login required.');
-    if(!currentQuestion())return emitError(socket,'Add a question first.');
-    buzzes=[];setSetting('buzzer_open','1');setSetting('revealed','0');broadcast();
+    if (!requireHost(socket)) {
+      return emitError(socket, 'Host login required.');
+    }
+
+    if (!currentQuestion()) {
+      return emitError(socket, 'Add a question first.');
+    }
+
+    buzzes = [];
+    setSetting('buzzer_open', '1');
+    setSetting('revealed', '0');
+    broadcast();
   });
+
   socket.on('host:quiz:close-buzzer', () => {
-    if(!requireHost(socket))return emitError(socket,'Host login required.');
-    setSetting('buzzer_open','0');broadcast();
+    if (!requireHost(socket)) {
+      return emitError(socket, 'Host login required.');
+    }
+
+    setSetting('buzzer_open', '0');
+    broadcast();
   });
+
   socket.on('host:quiz:reveal', () => {
-    if(!requireHost(socket))return emitError(socket,'Host login required.');
-    setSetting('buzzer_open','0');setSetting('revealed','1');broadcast();
+    if (!requireHost(socket)) {
+      return emitError(socket, 'Host login required.');
+    }
+
+    setSetting('buzzer_open', '0');
+    setSetting('revealed', '1');
+    broadcast();
   });
+
   socket.on('host:quiz:next', () => {
-    if(!requireHost(socket))return emitError(socket,'Host login required.');
-    const qs=allQuestions();if(!qs.length)return;
-    setSetting('current_index',String((Number(getSetting('current_index','0'))+1)%qs.length));
-    setSetting('buzzer_open','0');setSetting('revealed','0');buzzes=[];broadcast();
+    if (!requireHost(socket)) {
+      return emitError(socket, 'Host login required.');
+    }
+
+    const qs = allQuestions();
+    if (!qs.length) return;
+
+    setSetting(
+      'current_index',
+      String((Number(getSetting('current_index', '0')) + 1) % qs.length)
+    );
+
+    setSetting('buzzer_open', '0');
+    setSetting('revealed', '0');
+    buzzes = [];
+
+    broadcast();
   });
-  socket.on('host:score:award', ({teamId}={}) => {
-    if(!requireHost(socket))return emitError(socket,'Host login required.');
-    const q=currentQuestion(),t=db.prepare('SELECT id FROM teams WHERE id=?').get(teamId);
-    const b=buzzes.find(x=>x.teamId===teamId);
-    if(!q||!t||!b||b.awarded)return emitError(socket,'This team cannot be awarded points.');
-    db.prepare('UPDATE teams SET score=score+? WHERE id=?').run(q.points,teamId);
-    db.prepare('INSERT INTO score_history(team_id,question_id,points,created_at) VALUES(?,?,?,?)').run(teamId,q.id,q.points,now());
-    b.awarded=true;setSetting('buzzer_open','0');broadcast();
+
+  socket.on('host:score:award', ({ teamId } = {}) => {
+    if (!requireHost(socket)) {
+      return emitError(socket, 'Host login required.');
+    }
+
+    const q = currentQuestion();
+    const t = db.prepare('SELECT id FROM teams WHERE id=?').get(teamId);
+    const b = buzzes.find(x => x.teamId === teamId);
+
+    if (!q || !t || !b || b.awarded) {
+      return emitError(socket, 'This team cannot be awarded points.');
+    }
+
+    db.prepare('UPDATE teams SET score=score+? WHERE id=?')
+      .run(q.points, teamId);
+
+    db.prepare(`
+      INSERT INTO score_history(team_id,question_id,points,created_at)
+      VALUES(?,?,?,?)
+    `).run(teamId, q.id, q.points, now());
+
+    b.awarded = true;
+    setSetting('buzzer_open', '0');
+    broadcast();
   });
-  socket.on('host:team:delete', ({teamId}={}) => {
-    if(!requireHost(socket))return emitError(socket,'Host login required.');
-    db.prepare('DELETE FROM teams WHERE id=?').run(teamId);buzzes=buzzes.filter(b=>b.teamId!==teamId);broadcast();
+
+  socket.on('host:team:delete', ({ teamId } = {}) => {
+    if (!requireHost(socket)) {
+      return emitError(socket, 'Host login required.');
+    }
+
+    db.prepare('DELETE FROM teams WHERE id=?').run(teamId);
+    buzzes = buzzes.filter(b => b.teamId !== teamId);
+    broadcast();
   });
+
   socket.on('host:scores:reset', () => {
-    if(!requireHost(socket))return emitError(socket,'Host login required.');
-    db.prepare('UPDATE teams SET score=0').run();db.prepare('DELETE FROM score_history').run();buzzes=buzzes.map(b=>({...b,awarded:false}));broadcast();
+    if (!requireHost(socket)) {
+      return emitError(socket, 'Host login required.');
+    }
+
+    db.prepare('UPDATE teams SET score=0').run();
+    db.prepare('DELETE FROM score_history').run();
+    buzzes = buzzes.map(b => ({ ...b, awarded: false }));
+    broadcast();
   });
+
   socket.on('host:teams:export', () => {
-    if(!requireHost(socket))return emitError(socket,'Host login required.');
-    socket.emit('host:teams-export',allTeams(true));
+    if (!requireHost(socket)) {
+      return emitError(socket, 'Host login required.');
+    }
+
+    socket.emit('host:teams-export', allTeams(true));
   });
-  socket.on('disconnect', () => { if(hostSocketId===socket.id)hostSocketId=null; });
+
+  // Reset the active quiz session when the active host disconnects.
+  socket.on('disconnect', () => {
+    if (hostSocketId !== socket.id) return;
+
+    hostSocketId = null;
+
+    // Delete teams; related score history is removed by the foreign key.
+    db.prepare('DELETE FROM teams').run();
+    db.prepare('DELETE FROM score_history').run();
+
+    // Reset the current quiz state.
+    buzzes = [];
+    setSetting('current_index', '0');
+    setSetting('buzzer_open', '0');
+    setSetting('revealed', '0');
+
+    // Generate a new room code for the next session.
+    setSetting(
+      'room_code',
+      crypto.randomBytes(3).toString('hex').toUpperCase()
+    );
+
+    broadcast();
+
+    console.log('Host disconnected: quiz session reset.');
+  });
 });
 
-server.listen(PORT,'0.0.0.0',()=>console.log(`Live Team Quiz running on port ${PORT}`));
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Live Team Quiz running on port ${PORT}`);
+});
