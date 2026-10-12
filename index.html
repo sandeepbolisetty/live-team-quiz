@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Live Team Quiz</title><link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header><div><h1>⚡ Live Team Quiz</h1><p>Real-time team registration · Buzzer · Scoring</p></div><span id="roomCode" class="pill">Connecting…</span></header>
+<nav>
+<button data-view="home" class="active">Home</button><button data-view="host">Host</button><button data-view="register">Register team</button><button data-view="buzzer">Team buzzer</button><button data-view="projector">Projector</button><button data-view="leaderboard">Leaderboard</button>
+</nav>
+<main>
+<section id="home" class="view active">
+ <div class="card hero"><h2>Join the quiz</h2><p>Teams can join from different Wi-Fi networks or mobile data using this public website link.</p><div class="row"><button class="primary" data-go="register">Register your team</button><button data-go="buzzer">Open team buzzer</button><button data-go="projector">Projector view</button></div></div>
+ <div class="card"><h2>Registered teams</h2><div id="homeTeams" class="muted">Loading teams…</div></div>
+ <p class="footer">Host: open <code>/host</code> and sign in with the private host PIN. Team registration details are only shown to the host.</p>
+</section>
+<section id="host" class="view">
+ <div id="hostLogin" class="card narrow"><h2>Host login</h2><p class="muted">Enter the private HOST_PIN configured on the server.</p><form id="loginForm"><div class="field"><label>Host PIN</label><input id="hostPin" type="password" autocomplete="current-password" required></div><button class="primary">Sign in as host</button></form></div>
+ <div id="hostPanel" hidden>
+  <div class="card"><div class="row spread"><div><h2>Host dashboard</h2><p class="muted">This panel controls the shared live quiz.</p></div><div class="row"><button id="enableSound">🔊 Enable sound</button><button class="primary" id="openBuzz">Activate buzzer</button><button id="closeBuzz">Close buzzer</button><button class="gold" id="reveal">Reveal answer</button><button class="danger" id="nextQ">Next question</button></div></div>
+   <div class="stats"><div><span>Teams</span><b id="teamCount">0</b></div><div><span>Questions</span><b id="questionCount">0</b></div><div><span>Buzzer</span><b id="buzzStatus">Closed</b></div><div><span>Question</span><b id="questionNum">—</b></div></div>
+   <div id="hostCurrent" class="question-box"></div><h3>Accepted buzzes</h3><div id="hostBuzzes"></div>
+  </div>
+  <div class="grid2">
+   <div class="card"><h2>Add / edit question</h2><form id="questionForm"><input type="hidden" id="qId"><div class="field"><label>Question</label><textarea id="qText" required></textarea></div>
+    <div class="field"><label>Options A–D</label><div class="grid2"><input id="qA" placeholder="Option A" required><input id="qB" placeholder="Option B" required><input id="qC" placeholder="Option C" required><input id="qD" placeholder="Option D" required></div></div>
+    <div class="grid2"><div class="field"><label>Correct option</label><select id="qCorrect"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div><div class="field"><label>Points</label><input id="qPoints" type="number" min="1" value="10"></div><div class="field"><label>Category / round</label><input id="qCategory" value="General"></div><div class="field"><label>Time limit (sec)</label><input id="qTime" type="number" min="5" value="30"></div></div>
+    <div class="row"><button class="primary">Save question</button><button type="button" id="clearQuestion">Clear</button></div></form></div>
+   <div class="card"><h2>Question bank</h2><div class="row"><button id="exportQuestions">Export CSV</button><label class="file-button">Import CSV<input id="importQuestions" type="file" accept=".csv,text/csv" hidden></label></div><div id="questionBank"></div></div>
+  </div>
+  <div class="card"><div class="row spread"><h2>Teams and private member details</h2><button id="exportTeams">Export teams CSV</button></div><div id="hostTeams"></div></div>
+ </div>
+</section>
+<section id="register" class="view">
+ <div class="grid2">
+  <div class="card"><h2>Register your team</h2><p class="muted">Enter all members and choose the representative whose phone will be used to buzz.</p>
+   <form id="registerForm"><div class="field"><label>Team name</label><input id="teamName" maxlength="50" required placeholder="e.g. Robo Rangers"></div><div class="field"><label>Team members</label><div id="members"></div><button type="button" id="addMember">+ Add member</button></div><div class="field"><label>Buzzer representative</label><select id="representative"></select></div><button class="primary">Register team</button></form><div id="registerResult"></div>
+  </div>
+  <div class="card"><h2>Teams registered</h2><p class="muted">Member details are private and are not displayed here.</p><div id="publicTeams"></div></div>
+ </div>
+</section>
+<section id="buzzer" class="view">
+ <div class="grid2">
+  <div class="card"><h2>Team buzzer</h2><div id="teamSession"></div><div id="buzzerQuestion" class="question-box"></div><button id="buzzButton" class="buzzer" disabled>BUZZ!</button><div id="buzzerMessage" class="notice">Register this device as a team's representative first.</div></div>
+  <div class="card"><h2>Buzz order</h2><div id="buzzerOrder"></div></div>
+ </div>
+</section>
+<section id="projector" class="view"><div class="card projector"><div class="row spread"><h2>Projector view</h2><span id="projectorRoom" class="pill"></span></div><div id="projectorQuestion" class="question-box"></div><h2>Accepted buzzes</h2><div id="projectorBuzzes"></div></div></section>
+<section id="leaderboard" class="view"><div class="card"><div class="row spread"><h2>Live leaderboard</h2><button id="resetScores" class="danger" hidden>Reset scores</button></div><div id="leaderboardTable"></div></div></section>
+<p class="footer">Online version: use HTTPS, keep the host PIN private, and test the quiz on multiple networks before the event.</p>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="/socket.io/socket.io.js"></script><script src="/app.js"></script>
+</body></html>

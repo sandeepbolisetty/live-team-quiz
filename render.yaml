@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: live-team-quiz
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    disk:
+      name: quiz-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: HOST_PIN
+        sync: false
+      - key: DATABASE_PATH
+        value: /var/data/quiz.sqlite
