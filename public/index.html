@@ -1,10 +1,28 @@
+```html
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <title>Live Team Quiz | SPARC - Vignan University</title>
+
   <link rel="stylesheet" href="/style.css">
+
+  <style>
+    .footer {
+      text-align: center;
+      font-weight: normal;
+      line-height: 1.8;
+      margin: 25px auto;
+      width: 100%;
+    }
+
+    .footer p {
+      font-weight: normal;
+      margin: 5px 0;
+    }
+  </style>
 </head>
 
 <body>
@@ -294,9 +312,11 @@
 
       <div class="card">
         <h2>Teams registered</h2>
+
         <p class="muted">
           Member details are private and are not displayed here.
         </p>
+
         <div id="publicTeams"></div>
       </div>
 
@@ -356,6 +376,7 @@
 
       <div class="row spread">
         <h2>Live leaderboard</h2>
+
         <button id="resetScores" class="danger" hidden>
           Reset scores
         </button>
@@ -366,21 +387,24 @@
     </div>
   </section>
 
-  <style>
-  .footer {
-    text-align: center;
-  }
-</style>
+  <!-- CENTER-ALIGNED FOOTER -->
+  <footer class="footer">
+    <p>
+      Powered by SPARC CLUB (2K26–27) by SANDEEP BOLISETTY,
+      Vignan University.
+    </p>
 
-<p class="footer">
-  Powered by SPARC CLUB(2K26-27) by SANDEEP BOLISETTY, Vignan University.<br></p>
+    <p>
+      President of SPARC - PRAVYANTH MARREDDY |
+      Vice President of SPARC - SREENIDHI KUNAGU
+    </p>
 
-  
-  President of SPARC - PRAVYANTH MARREDDY | Vice President of SPARC - SREENIDHI KUNAGU<br></p>
-  
-  Keep the host PIN private and test the quiz on multiple networks
-  before the event.
-</p>
+    <p>
+      Keep the host PIN private and test the quiz on multiple networks
+      before the event.
+    </p>
+  </footer>
+
 </main>
 
 <div id="toast" role="status" aria-live="polite"></div>
@@ -391,3 +415,4 @@
 
 </body>
 </html>
+```
