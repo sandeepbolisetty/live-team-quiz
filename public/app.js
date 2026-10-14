@@ -103,6 +103,22 @@
     toast('Sound enabled in this browser.');
   });
 
+  // Host logout.
+  $('hostLogout').addEventListener('click', () => {
+    if (!confirm('Log out of the host dashboard?')) return;
+    socket.emit('host:logout');
+  });
+
+  socket.on('host:logout-ok', () => {
+    isHost = false;
+    $('hostPin').value = '';
+    $('hostLogin').hidden = false;
+    $('hostPanel').hidden = true;
+    $('resetScores').hidden = true;
+    view('home');
+    toast('You have logged out of the host dashboard.');
+  });
+
   // Host login.
   $('loginForm').addEventListener('submit', event => {
     event.preventDefault();
