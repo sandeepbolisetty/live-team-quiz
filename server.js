@@ -85,6 +85,15 @@ if (!getSetting('revealed')) setSetting('revealed', '0');
 
 let buzzes = [];
 let hostSocketId = null;
+let answerModeOpen = false;
+let buzzerDeadline = null;
+let buzzerTimer = null;
+
+function stopBuzzerTimer() {
+  if (buzzerTimer) clearTimeout(buzzerTimer);
+  buzzerTimer = null;
+  buzzerDeadline = null;
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -181,6 +190,8 @@ function publicState(forHost = false) {
       : null,
 
     buzzerOpen: getSetting('buzzer_open', '0') === '1',
+    buzzerDeadline,
+    answerModeOpen,
     revealed,
 
     teams: allTeams(forHost),
@@ -192,6 +203,7 @@ function publicState(forHost = false) {
           .get(b.teamId)?.name || 'Team',
       order: b.order,
       awarded: b.awarded,
+      submitted: Boolean(b.submitted),
       selectedOption: forHost ? b.selectedOption : undefined,
       isCorrect: revealed ? Boolean(b.isCorrect) : undefined
     })),
@@ -411,6 +423,7 @@ io.on('connection', socket => {
       order: buzzes.length + 1,
       awarded: false,
       selectedOption: null,
+      submitted: false,
       isCorrect: false
     };
 
@@ -513,6 +526,8 @@ io.on('connection', socket => {
     buzzes = [];
     setSetting('buzzer_open', '0');
     setSetting('revealed', '0');
+    answerModeOpen = false;
+    stopBuzzerTimer();
 
     broadcast();
   });
@@ -577,9 +592,17 @@ io.on('connection', socket => {
     }
 
     buzzes = [];
+    answerModeOpen = false;
+    stopBuzzerTimer();
 
     setSetting('buzzer_open', '1');
     setSetting('revealed', '0');
+    buzzerDeadline = Date.now() + 15000;
+    buzzerTimer = setTimeout(() => {
+      setSetting('buzzer_open', '0');
+      stopBuzzerTimer();
+      broadcast();
+    }, 15000);
 
     broadcast();
   });
@@ -591,10 +614,38 @@ io.on('connection', socket => {
     }
 
     setSetting('buzzer_open', '0');
+    stopBuzzerTimer();
     broadcast();
   });
 
-  // HOST RECORDS EACH TEAM'S ORAL ANSWER
+  // HOST UNLOCKS ANSWER ENTRY ON ELIGIBLE TEAM DEVICES
+  socket.on('host:answer-mode:unlock', () => {
+    if (!requireHost(socket)) return emitError(socket, 'Host login required.');
+    if (getSetting('revealed', '0') === '1') return emitError(socket, 'The answer has already been revealed.');
+    if (!buzzes.length) return emitError(socket, 'Wait for at least one team to buzz first.');
+    setSetting('buzzer_open', '0');
+    stopBuzzerTimer();
+    answerModeOpen = true;
+    broadcast();
+  });
+
+  // TEAM SUBMITS ITS OWN ANSWER AFTER HOST UNLOCKS ANSWER MODE
+  socket.on('team:answer:submit', ({ teamId, token, optionIndex } = {}) => {
+    const team = db.prepare('SELECT id, token_hash FROM teams WHERE id = ?').get(teamId);
+    if (!team || !token || hashToken(token) !== team.token_hash) return emitError(socket, 'Team authentication failed.');
+    if (!answerModeOpen || getSetting('revealed', '0') === '1') return emitError(socket, 'The host has not unlocked answer mode.');
+    const buzz = buzzes.find(entry => entry.teamId === team.id && entry.order <= 2);
+    const choice = Number(optionIndex);
+    if (!buzz) return emitError(socket, 'Only the first two teams to buzz can answer.');
+    if (buzz.submitted) return emitError(socket, 'Your team has already submitted its answer.');
+    if (!Number.isInteger(choice) || choice < 0 || choice > 3) return emitError(socket, 'Choose option A, B, C, or D.');
+    buzz.selectedOption = choice;
+    buzz.submitted = true;
+    socket.emit('team:answer:submitted', { teamId: team.id });
+    broadcast();
+  });
+
+  // HOST RECORDS EACH TEAM'S ORAL ANSWER (legacy event; team UI submits directly)
   // optionIndex: A = 0, B = 1, C = 2, D = 3
   socket.on('host:answer:set', ({ teamId, optionIndex } = {}) => {
     if (!requireHost(socket)) {
@@ -646,7 +697,7 @@ io.on('connection', socket => {
 
     if (
       answeringTeams.some(
-        entry =>
+        entry => !entry.submitted ||
           entry.selectedOption === null ||
           entry.selectedOption === undefined
       )
@@ -658,6 +709,8 @@ io.on('connection', socket => {
     }
 
     setSetting('buzzer_open', '0');
+    stopBuzzerTimer();
+    answerModeOpen = false;
 
     const updateScore = db.prepare(
       'UPDATE teams SET score = score + ? WHERE id = ?'
@@ -712,6 +765,8 @@ io.on('connection', socket => {
     setSetting('current_index', String(nextIndex));
     setSetting('buzzer_open', '0');
     setSetting('revealed', '0');
+    answerModeOpen = false;
+    stopBuzzerTimer();
 
     buzzes = [];
 
