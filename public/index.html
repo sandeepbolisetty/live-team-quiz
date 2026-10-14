@@ -1,772 +1,112 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#101827">
-  <meta
-    name="description"
-    content="Live Team Quiz — real-time team registration, buzzer rounds, automatic scoring, and leaderboard."
-  >
-  <title>Live Team Quiz</title>
-  <link rel="stylesheet" href="/style.css">
-
-  <style>
-    :root {
-      color-scheme: dark;
-      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #0b1120;
-      color: #edf2ff;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      background: #0b1120;
-      color: #edf2ff;
-    }
-
-    header {
-      padding: 18px 22px;
-      background: #111b2e;
-      border-bottom: 1px solid #26334b;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    header h1 {
-      font-size: 1.35rem;
-      margin: 0;
-    }
-
-    header p {
-      margin: 5px 0 0;
-      color: #a8b7d3;
-      font-size: 0.9rem;
-    }
-
-    nav {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding: 12px 22px;
-      background: #0f1728;
-      border-bottom: 1px solid #26334b;
-    }
-
-    button,
-    input,
-    select,
-    textarea {
-      font: inherit;
-    }
-
-    button {
-      border: 1px solid #3b4b68;
-      border-radius: 9px;
-      background: #202d45;
-      color: #fff;
-      padding: 10px 14px;
-      cursor: pointer;
-    }
-
-    button:hover:not(:disabled) {
-      filter: brightness(1.15);
-    }
-
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.48;
-    }
-
-    button.primary {
-      background: #2563eb;
-      border-color: #3b82f6;
-    }
-
-    button.success {
-      background: #087f5b;
-      border-color: #10b981;
-    }
-
-    button.danger {
-      background: #9f2937;
-      border-color: #ef4444;
-    }
-
-    button.active,
-    nav button.active {
-      background: #2563eb;
-      border-color: #60a5fa;
-    }
-
-    main {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 22px;
-    }
-
-    .view {
-      display: none;
-    }
-
-    .view.active {
-      display: block;
-    }
-
-    .panel {
-      background: #111b2e;
-      border: 1px solid #293751;
-      border-radius: 14px;
-      padding: 18px;
-      margin-bottom: 18px;
-      min-width: 0;
-    }
-
-    .panel h2,
-    .panel h3 {
-      margin-top: 0;
-    }
-
-    .muted {
-      color: #a8b7d3;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-      gap: 16px;
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .stat {
-      background: #17243a;
-      border: 1px solid #30415f;
-      border-radius: 12px;
-      padding: 15px;
-    }
-
-    .stat strong {
-      display: block;
-      font-size: 1.7rem;
-      margin-top: 5px;
-    }
-
-    form {
-      display: grid;
-      gap: 12px;
-    }
-
-    label {
-      display: grid;
-      gap: 6px;
-      font-size: 0.92rem;
-      color: #cbd7ee;
-    }
-
-    input,
-    select,
-    textarea {
-      width: 100%;
-      min-width: 0;
-      padding: 11px 12px;
-      border-radius: 8px;
-      border: 1px solid #40516f;
-      background: #0b1323;
-      color: #fff;
-    }
-
-    input:focus,
-    select:focus,
-    textarea:focus {
-      outline: 2px solid #3b82f6;
-      outline-offset: 1px;
-    }
-
-    textarea {
-      resize: vertical;
-    }
-
-    .row {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .row > * {
-      min-width: 0;
-    }
-
-    .row label {
-      flex: 1 1 140px;
-    }
-
-    .option-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .option {
-      background: #192943;
-      border: 1px solid #354967;
-      border-radius: 10px;
-      padding: 12px;
-      overflow-wrap: anywhere;
-    }
-
-    .option.correct {
-      border-color: #10b981;
-      background: #12392f;
-    }
-
-    .answer-picks {
-      display: grid;
-      gap: 12px;
-      margin-top: 16px;
-    }
-
-    .answer-pick {
-      background: #0d1729;
-      border: 1px solid #3a4b68;
-      border-radius: 12px;
-      padding: 14px;
-    }
-
-    .answer-pick h4 {
-      margin: 0 0 10px;
-    }
-
-    .answer-pick select {
-      margin-top: 8px;
-    }
-
-    .table-wrap {
-      overflow-x: auto;
-      width: 100%;
-    }
-
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      min-width: 460px;
-    }
-
-    th,
-    td {
-      padding: 11px 10px;
-      text-align: left;
-      border-bottom: 1px solid #293751;
-      vertical-align: top;
-    }
-
-    th {
-      color: #a8c7ff;
-      background: #17243a;
-    }
-
-    .team-card,
-    .buzz-card,
-    .question-card {
-      padding: 12px;
-      border: 1px solid #354967;
-      background: #17243a;
-      border-radius: 10px;
-      margin: 8px 0;
-      overflow-wrap: anywhere;
-    }
-
-    .buzz-card.first {
-      border-color: #fbbf24;
-    }
-
-    .buzz-card.second {
-      border-color: #60a5fa;
-    }
-
-    .badge {
-      display: inline-block;
-      border-radius: 999px;
-      padding: 4px 9px;
-      background: #263955;
-      color: #dce8ff;
-      font-size: 0.8rem;
-      margin: 3px 4px 3px 0;
-    }
-
-    .correct-text {
-      color: #34d399;
-      font-weight: 700;
-    }
-
-    .wrong-text {
-      color: #f87171;
-      font-weight: 700;
-    }
-
-    #buzzButton {
-      width: 100%;
-      min-height: 150px;
-      border-radius: 22px;
-      background: #dc2626;
-      border: 4px solid #fca5a5;
-      font-size: clamp(2rem, 8vw, 4rem);
-      font-weight: 900;
-      letter-spacing: 0.08em;
-      box-shadow: 0 8px 0 #7f1d1d;
-    }
-
-    #buzzButton:active:not(:disabled) {
-      transform: translateY(4px);
-      box-shadow: 0 4px 0 #7f1d1d;
-    }
-
-    #buzzButton:disabled {
-      background: #374151;
-      border-color: #6b7280;
-      box-shadow: none;
-    }
-
-    .projector {
-      text-align: center;
-    }
-
-    .projector h2 {
-      font-size: clamp(1.6rem, 5vw, 3rem);
-    }
-
-    .projector-question {
-      font-size: clamp(1.3rem, 4vw, 2.4rem);
-      line-height: 1.4;
-      margin: 22px 0;
-    }
-
-    .projector .option {
-      font-size: clamp(1rem, 2.5vw, 1.5rem);
-      text-align: left;
-      padding: 18px;
-    }
-
-    .empty {
-      color: #91a3c2;
-      padding: 12px 0;
-    }
-
-    #toast {
-      position: fixed;
-      left: 50%;
-      bottom: 20px;
-      transform: translateX(-50%);
-      max-width: calc(100% - 28px);
-      padding: 12px 18px;
-      border-radius: 10px;
-      background: #e5edff;
-      color: #101827;
-      box-shadow: 0 8px 28px #0006;
-      z-index: 1000;
-      display: none;
-    }
-
-    #toast.show {
-      display: block;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    @media (max-width: 600px) {
-      main {
-        padding: 12px;
-      }
-
-      header {
-        padding: 15px;
-      }
-
-      nav {
-        padding: 10px;
-      }
-
-      .panel {
-        padding: 13px;
-      }
-
-      .option-grid {
-        grid-template-columns: 1fr;
-      }
-
-      #buzzButton {
-        min-height: 125px;
-      }
-    }
-  </style>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VFSTR | Live Team Quiz</title><link rel="stylesheet" href="/style.css">
+<style>
+:root{--bg:#f4f7fb;--panel:#fff;--panel2:#eef3fa;--text:#172b4d;--muted:#596b83;--cyan:#0d4d8b;--green:#16794b;--red:#a51f36;--gold:#f0b323}
+body{background:#f4f7fb;color:#172b4d}
+.vfstr-masthead{display:grid;grid-template-columns:112px minmax(0,1fr) 112px;align-items:center;gap:18px;padding:18px clamp(14px,4vw,56px);background:#fff;border-bottom:4px solid #b51f35;box-shadow:0 3px 12px #10294b12}
+.vfstr-logo{width:100px;height:94px;object-fit:contain;display:block;margin:auto}
+.vfstr-brand{text-align:center;min-width:0}
+.vfstr-brand .eyebrow{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:#a51f36;margin:0 0 5px}
+.vfstr-brand h1{font-family:Georgia,'Times New Roman',serif;font-size:clamp(1.12rem,2.6vw,2rem);line-height:1.2;color:#123b68;margin:0}
+.vfstr-brand .subtitle{font-size:.9rem;color:#536780;margin:7px 0 0}
+.vfstr-brand .quiz-label{display:inline-block;margin-top:10px;background:#123b68;color:white;padding:5px 14px;border-radius:3px;font-weight:750;letter-spacing:.06em;font-size:.78rem}
+.vfstr-room{display:flex;justify-content:flex-end;padding:10px clamp(14px,4vw,56px);background:#edf2f8;border-bottom:1px solid #d4deea;color:#173e6b;font-weight:700}
+nav{background:#123b68;border-bottom:3px solid #b51f35;padding:11px clamp(14px,4vw,56px)}
+nav button{background:transparent;border-color:#5c7da1;color:#fff;border-radius:4px;font-weight:650}
+nav button.active,nav button:hover{background:#fff;color:#123b68}
+main{max-width:1480px}
+.card{background:#fff;border:1px solid #d6e0ec;border-radius:8px;box-shadow:0 4px 14px #17385c0a}
+.hero,.question-box{background:linear-gradient(135deg,#fff,#eef4fb);border-color:#c8d8e9}
+button{border-radius:5px;background:#e8eef6;color:#173b64;border-color:#c4d1e1}
+button.primary{background:#123b68;color:#fff;border-color:#123b68}
+button.good{background:#16794b;color:white}
+button.gold{background:#f5c451;color:#332506}
+button.danger{background:#a51f36;color:#fff;border-color:#a51f36}
+input,select,textarea{background:#fff;color:#172b4d;border-color:#c5d2e2;border-radius:5px}
+input:focus,select:focus,textarea:focus{outline:2px solid #477eae}
+.stats>div{background:#f4f7fb;border-color:#d5e0ed}
+.question-box{background:#f2f6fb;border-color:#bfd0e3}
+.option{background:#f7f9fc;border-color:#d3deea}
+.option.correct{background:#e5f5ec;border-color:#16794b}
+.pill,.badge{border-radius:3px;color:#123b68;border-color:#c6d6e8;background:#eef3fa}
+.buzzer{background:linear-gradient(135deg,#c52d43,#941b30);color:#fff}
+.notice{background:#eef7f2;color:#175d3d;border-color:#b9dfca}
+.empty{border-color:#d1dce9;color:#5c6f87}
+.answer-picks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.answer-pick{padding:14px;border:1px solid #d3deea;border-radius:8px;background:#f7f9fc;min-width:0}
+.answer-pick .field{margin:8px 0 0}
+@media(max-width:600px){.vfstr-masthead{grid-template-columns:66px minmax(0,1fr) 66px;gap:8px;padding:12px 10px}.vfstr-logo{width:62px;height:62px}.vfstr-brand .eyebrow{font-size:.58rem;letter-spacing:.08em}.vfstr-brand .subtitle{font-size:.75rem}.vfstr-brand .quiz-label{font-size:.67rem;padding:4px 8px}.vfstr-room{padding:8px 12px}.answer-picks{grid-template-columns:1fr}}
+</style>
 </head>
-
 <body>
-  <header>
-    <div>
-      <h1>⚡ Live Team Quiz</h1>
-      <p>Real-time buzzer • Host-controlled answers • Automatic scoring</p>
-    </div>
-    <div>
-      <span class="badge">Room</span>
-      <strong id="roomCode">Connecting...</strong>
-    </div>
-  </header>
-
-  <nav aria-label="Main navigation">
-    <button type="button" data-view="home" class="active">Home</button>
-    <button type="button" data-view="register">Team Registration</button>
-    <button type="button" data-view="buzzer">Team Buzzer</button>
-    <button type="button" data-view="host">Host Dashboard</button>
-    <button type="button" data-view="projector">Projector</button>
-    <button type="button" data-view="leaderboard">Leaderboard</button>
-  </nav>
-
-  <main>
-    <!-- HOME -->
-    <section id="home" class="view active">
-      <div class="panel">
-        <h2>Welcome to Live Team Quiz</h2>
-        <p class="muted">
-          Register your team, choose one representative phone, and wait for
-          the host to open the buzzer.
-        </p>
-        <div class="row">
-          <button type="button" class="primary" data-go="register">
-            Register a Team
-          </button>
-          <button type="button" data-go="buzzer">Open Team Buzzer</button>
-          <button type="button" data-go="leaderboard">View Leaderboard</button>
-        </div>
-      </div>
-
-      <div class="stats">
-        <div class="stat">
-          Registered Teams
-          <strong id="teamCount">0</strong>
-        </div>
-        <div class="stat">
-          Questions
-          <strong id="questionCount">0</strong>
-        </div>
-        <div class="stat">
-          Buzzer Status
-          <strong id="buzzStatus">Closed</strong>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h3>Registered Teams</h3>
-        <div id="homeTeams" class="empty">Waiting for teams to register.</div>
-      </div>
-    </section>
-
-    <!-- TEAM REGISTRATION -->
-    <section id="register" class="view">
-      <div class="panel">
-        <h2>Team Registration</h2>
-        <p class="muted">
-          Enter the team name and each member's full name and registration
-          number. Select the member whose phone will be used for the buzzer.
-          Keep your team's resume credentials private.
-        </p>
-
-        <form id="registerForm">
-          <label>
-            Team Name
-            <input
-              id="teamName"
-              name="teamName"
-              required
-              maxlength="60"
-              placeholder="Example: Robo Warriors"
-            >
-          </label>
-
-          <div class="row" style="justify-content:space-between">
-            <h3>Team Members</h3>
-            <button type="button" id="addMember">+ Add Member</button>
-          </div>
-
-          <div id="members"></div>
-
-          <label>
-            Buzzer Representative
-            <select id="representative" required>
-              <option value="">Add members first</option>
-            </select>
-          </label>
-
-          <button type="submit" class="primary">Register Team</button>
-        </form>
-
-        <div id="registerResult" aria-live="polite"></div>
-      </div>
-    </section>
-
-    <!-- BUZZER -->
-    <section id="buzzer" class="view">
-      <div class="panel">
-        <h2>Team Buzzer</h2>
-        <div id="teamSession" class="muted">
-          Register your team on this device or resume your team's session.
-        </div>
-
-        <div id="buzzerQuestion" class="projector-question">
-          Waiting for the host to start a question.
-        </div>
-
-        <button type="button" id="buzzButton" disabled>
-          BUZZ!
-        </button>
-
-        <p id="buzzerMessage" class="muted" aria-live="polite">
-          The buzzer is closed.
-        </p>
-
-        <h3>Your Buzz Position</h3>
-        <div id="buzzerOrder" class="empty">
-          You have not buzzed in this round.
-        </div>
-      </div>
-    </section>
-
-    <!-- HOST DASHBOARD -->
-    <section id="host" class="view">
-      <div id="hostLogin" class="panel">
-        <h2>Host Login</h2>
-        <p class="muted">
-          Enter the host PIN configured on the server.
-        </p>
-        <form id="loginForm">
-          <label>
-            Host PIN
-            <input
-              id="hostPin"
-              name="hostPin"
-              type="password"
-              required
-              autocomplete="current-password"
-              placeholder="Enter host PIN"
-            >
-          </label>
-          <button type="submit" class="primary">Login as Host</button>
-        </form>
-      </div>
-
-      <div id="hostPanel" class="hidden">
-        <div class="panel">
-          <h2>Host Dashboard</h2>
-          <div class="row">
-            <button type="button" id="enableSound">Enable Buzzer Sound</button>
-            <button type="button" id="openBuzz" class="success">Open Buzzer</button>
-            <button type="button" id="closeBuzz" class="danger">Close Buzzer</button>
-            <button type="button" id="reveal" class="primary" disabled>
-              Reveal Answer &amp; Score
-            </button>
-            <button type="button" id="nextQ">Next Question</button>
-            <button type="button" id="resetScores" class="danger">
-              Reset Scores
-            </button>
-          </div>
-          <p class="muted">
-            The first two teams to buzz are eligible to answer. Select the
-            option spoken by each team, then reveal the correct answer to
-            award points automatically.
-          </p>
-        </div>
-
-        <div class="grid">
-          <div class="panel">
-            <h3>Current Question</h3>
-            <div id="questionNum" class="badge">Question —</div>
-            <div id="hostCurrent" class="empty">No question selected.</div>
-          </div>
-
-          <div class="panel">
-            <h3>Buzz Results</h3>
-            <div id="hostBuzzes" class="empty">No teams have buzzed.</div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h3>First and Second Buzzers — Enter Their Answers</h3>
-          <p class="muted">
-            Ask each team to say its option aloud. Choose the option that
-            team actually gave. Do not reveal until you have recorded the
-            eligible teams' answers.
-          </p>
-          <div id="hostAnswerPicks" class="answer-picks"></div>
-        </div>
-
-        <div class="panel">
-          <h3>Teams and Scores</h3>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Team</th>
-                  <th>Members</th>
-                  <th>Score</th>
-                </tr>
-              </thead>
-              <tbody id="hostTeams">
-                <tr><td colspan="3">No teams registered.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h3>Question Bank</h3>
-          <div id="questionBank" class="empty">No questions loaded.</div>
-        </div>
-
-        <div class="panel">
-          <h3>Add or Edit Question</h3>
-          <form id="questionForm">
-            <input type="hidden" id="qId">
-
-            <label>
-              Question
-              <textarea
-                id="qText"
-                rows="3"
-                required
-                maxlength="2000"
-                placeholder="Enter the question"
-              ></textarea>
-            </label>
-
-            <div class="option-grid">
-              <label>
-                Option A
-                <input id="qA" required maxlength="500">
-              </label>
-              <label>
-                Option B
-                <input id="qB" required maxlength="500">
-              </label>
-              <label>
-                Option C
-                <input id="qC" required maxlength="500">
-              </label>
-              <label>
-                Option D
-                <input id="qD" required maxlength="500">
-              </label>
-            </div>
-
-            <div class="row">
-              <label>
-                Correct Option
-                <select id="qCorrect" required>
-                  <option value="0">A</option>
-                  <option value="1">B</option>
-                  <option value="2">C</option>
-                  <option value="3">D</option>
-                </select>
-              </label>
-
-              <label>
-                Points
-                <input id="qPoints" type="number" min="0" max="100000" value="10" required>
-              </label>
-
-              <label>
-                Time Limit (seconds)
-                <input id="qTime" type="number" min="1" max="3600" value="30" required>
-              </label>
-            </div>
-
-            <label>
-              Category
-              <input id="qCategory" maxlength="100" placeholder="General Knowledge, Robotics, etc.">
-            </label>
-
-            <div class="row">
-              <button type="submit" class="primary">Save Question</button>
-              <button type="button" id="clearQuestion">Clear Form</button>
-              <button type="button" id="exportQuestions">Export Questions CSV</button>
-              <button type="button" id="importQuestions">Import Questions CSV</button>
-              <input
-                type="file"
-                id="questionCsvFile"
-                accept=".csv,text/csv"
-                class="hidden"
-                aria-label="Choose questions CSV file"
-              >
-            </div>
-          </form>
-        </div>
-
-        <div class="panel">
-          <h3>Team Data</h3>
-          <p class="muted">
-            Team member names and registration numbers are host-only data.
-            Do not share host access with participants.
-          </p>
-          <button type="button" id="exportTeams">Export Team Data CSV</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- PROJECTOR -->
-    <section id="projector" class="view">
-      <div class="panel projector">
-        <div class="badge">Room <span id="projectorRoom">Connecting...</span></div>
-        <h2>Live Quiz</h2>
-        <div id="projectorQuestion" class="projector-question">
-          Waiting for the host to start the quiz.
-        </div>
-        <div id="projectorBuzzes" class="grid">
-          <div class="empty">Waiting for the first buzz.</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- LEADERBOARD -->
-    <section id="leaderboard" class="view">
-      <div class="panel">
-        <h2>Live Leaderboard</h2>
-        <p class="muted">Scores update as the host reveals answers.</p>
-        <div class="table-wrap">
-          <table id="leaderboardTable">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Team</th>
-                <th>Points</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td colspan="3">Waiting for scores.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <div id="toast" role="status" aria-live="polite"></div>
-
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/app.js"></script>
-</body>
-</html>
+<header class="vfstr-masthead">
+ <img id="vignanLogo" class="vfstr-logo" src="/vignan-logo.png" alt="Vignan University logo" onerror="tryLogoFallback(this,'vignan')">
+ <div class="vfstr-brand">
+  <p class="eyebrow">Vignan's Foundation for Science, Technology &amp; Research</p>
+  <h1>VFSTR Deemed to be University</h1>
+  <p class="subtitle">Knowledge • Innovation • Excellence</p>
+  <span class="quiz-label">LIVE TEAM QUIZ PORTAL</span>
+ </div>
+ <img id="sparcLogo" class="vfstr-logo" src="/sparc-logo.png" alt="SPARC logo" onerror="tryLogoFallback(this,'sparc')">
+</header>
+<div class="vfstr-room"><span>QUIZ ROOM&nbsp; <strong id="roomCode">Connecting…</strong></span></div>
+<nav>
+<button data-view="home" class="active">Home</button><button data-view="host">Host</button><button data-view="register">Register team</button><button data-view="buzzer">Team buzzer</button><button data-view="projector">Projector</button><button data-view="leaderboard">Leaderboard</button>
+</nav>
+<main>
+<section id="home" class="view active">
+ <div class="card hero"><h2>Join the quiz</h2><p>Teams can join from different Wi-Fi networks or mobile data using this public website link.</p><div class="row"><button class="primary" data-go="register">Register your team</button><button data-go="buzzer">Open team buzzer</button><button data-go="projector">Projector view</button></div></div>
+ <div class="card"><h2>Registered teams</h2><div id="homeTeams" class="muted">Loading teams…</div></div>
+ <p class="footer">Host: open <code>/host</code> and sign in with the private host PIN. Team registration details are only shown to the host.</p>
+</section>
+<section id="host" class="view">
+ <div id="hostLogin" class="card narrow"><h2>Host login</h2><p class="muted">Enter the private HOST_PIN configured on the server.</p><form id="loginForm"><div class="field"><label>Host PIN</label><input id="hostPin" type="password" autocomplete="current-password" required></div><button class="primary">Sign in as host</button></form></div>
+ <div id="hostPanel" hidden>
+  <div class="card"><div class="row spread"><div><h2>Host dashboard</h2><p class="muted">This panel controls the shared live quiz.</p></div><div class="row"><button id="enableSound">🔊 Enable sound</button><button class="primary" id="openBuzz">Activate buzzer</button><button id="closeBuzz">Close buzzer</button><button class="gold" id="reveal">Reveal answer</button><button class="danger" id="nextQ">Next question</button></div></div>
+   <div class="stats"><div><span>Teams</span><b id="teamCount">0</b></div><div><span>Questions</span><b id="questionCount">0</b></div><div><span>Buzzer</span><b id="buzzStatus">Closed</b></div><div><span>Question</span><b id="questionNum">—</b></div></div>
+   <div id="hostCurrent" class="question-box"></div><h3>Accepted buzzes</h3><div id="hostBuzzes"></div><h3>First and Second Buzzers — Record Spoken Options</h3><p class="muted">Select each eligible team’s spoken option before revealing the answer.</p><div id="hostAnswerPicks" class="answer-picks"></div>
+  </div>
+  <div class="grid2">
+   <div class="card"><h2>Add / edit question</h2><form id="questionForm"><input type="hidden" id="qId"><div class="field"><label>Question</label><textarea id="qText" required></textarea></div>
+    <div class="field"><label>Options A–D</label><div class="grid2"><input id="qA" placeholder="Option A" required><input id="qB" placeholder="Option B" required><input id="qC" placeholder="Option C" required><input id="qD" placeholder="Option D" required></div></div>
+    <div class="grid2"><div class="field"><label>Correct option</label><select id="qCorrect"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div><div class="field"><label>Points</label><input id="qPoints" type="number" min="1" value="10"></div><div class="field"><label>Category / round</label><input id="qCategory" value="General"></div><div class="field"><label>Time limit (sec)</label><input id="qTime" type="number" min="5" value="30"></div></div>
+    <div class="row"><button class="primary">Save question</button><button type="button" id="clearQuestion">Clear</button></div></form></div>
+   <div class="card"><h2>Question bank</h2><div class="row"><button id="exportQuestions">Export CSV</button><label class="file-button">Import CSV<input id="importQuestions" type="file" accept=".csv,text/csv" hidden></label></div><div id="questionBank"></div></div>
+  </div>
+  <div class="card"><div class="row spread"><h2>Teams and private member details</h2><button id="exportTeams">Export teams CSV</button></div><div id="hostTeams"></div></div>
+ </div>
+</section>
+<section id="register" class="view">
+ <div class="grid2">
+  <div class="card"><h2>Register your team</h2><p class="muted">Enter all members and choose the representative whose phone will be used to buzz.</p>
+   <form id="registerForm"><div class="field"><label>Team name</label><input id="teamName" maxlength="50" required placeholder="e.g. Robo Rangers"></div><div class="field"><label>Team members</label><div id="members"></div><button type="button" id="addMember">+ Add member</button></div><div class="field"><label>Buzzer representative</label><select id="representative"></select></div><button class="primary">Register team</button></form><div id="registerResult"></div>
+  </div>
+  <div class="card"><h2>Teams registered</h2><p class="muted">Member details are private and are not displayed here.</p><div id="publicTeams"></div></div>
+ </div>
+</section>
+<section id="buzzer" class="view">
+ <div class="grid2">
+  <div class="card"><h2>Team buzzer</h2><div id="teamSession"></div><div id="buzzerQuestion" class="question-box"></div><button id="buzzButton" class="buzzer" disabled>BUZZ!</button><div id="buzzerMessage" class="notice">Register this device as a team's representative first.</div></div>
+  <div class="card"><h2>Buzz order</h2><div id="buzzerOrder"></div></div>
+ </div>
+</section>
+<section id="projector" class="view"><div class="card projector"><div class="row spread"><h2>Projector view</h2><span id="projectorRoom" class="pill"></span></div><div id="projectorQuestion" class="question-box"></div><h2>Accepted buzzes</h2><div id="projectorBuzzes"></div></div></section>
+<section id="leaderboard" class="view"><div class="card"><div class="row spread"><h2>Live leaderboard</h2><button id="resetScores" class="danger" hidden>Reset scores</button></div><div id="leaderboardTable"></div></div></section>
+<p class="footer">Online version: use HTTPS, keep the host PIN private, and test the quiz on multiple networks before the event.</p>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+function tryLogoFallback(img, kind){
+  const candidates = kind === 'vignan'
+    ? ['/images/vignan-logo.png','/images/vignan.png','/assets/vignan-logo.png','/assets/vignan.png','/vignan.png','/images/vfstr-logo.png','/vfstr-logo.png','/Vignan_Logo.png','/vignan-logo.svg','/images/vignan-logo.svg']
+    : ['/images/sparc-logo.png','/images/sparc.png','/assets/sparc-logo.png','/assets/sparc.png','/sparc.png','/SPARC_Logo.png','/sparc-logo.svg','/images/sparc-logo.svg'];
+  const index = Number(img.dataset.fallbackIndex || 0);
+  if (index < candidates.length) { img.dataset.fallbackIndex = String(index + 1); img.src = candidates[index]; }
+  else { img.style.visibility = 'hidden'; console.warn(kind + ' logo file path not found. Update the image src to the exact path in GitHub.'); }
+}
+</script>
+<script src="/socket.io/socket.io.js"></script><script src="/app.js"></script>
+</body></html>
