@@ -88,11 +88,51 @@ let hostSocketId = null;
 let answerModeOpen = false;
 let buzzerDeadline = null;
 let buzzerTimer = null;
+let roundPhase = 'hidden';
+let roundDeadline = null;
+let roundTimer = null;
+let questionVisible = false;
+let teamAnswers = [];
 
 function stopBuzzerTimer() {
   if (buzzerTimer) clearTimeout(buzzerTimer);
+  if (roundTimer) clearTimeout(roundTimer);
   buzzerTimer = null;
+  roundTimer = null;
   buzzerDeadline = null;
+  roundDeadline = null;
+}
+
+function startAnswerWindow() {
+  if (roundTimer) clearTimeout(roundTimer);
+  setSetting('buzzer_open', '0');
+  buzzerDeadline = null;
+  answerModeOpen = true;
+  roundPhase = 'answering';
+  roundDeadline = Date.now() + 15000;
+  roundTimer = setTimeout(() => {
+    answerModeOpen = false;
+    roundPhase = 'awaiting-reveal';
+    roundDeadline = null;
+    roundTimer = null;
+    broadcast();
+  }, 15000);
+  broadcast();
+}
+
+function startBuzzerWindow() {
+  if (roundTimer) clearTimeout(roundTimer);
+  setSetting('buzzer_open', '1');
+  buzzerDeadline = Date.now() + 10000;
+  roundPhase = 'buzzer';
+  roundDeadline = buzzerDeadline;
+  answerModeOpen = false;
+  roundTimer = setTimeout(() => {
+    setSetting('buzzer_open', '0');
+    buzzerDeadline = null;
+    startAnswerWindow();
+  }, 10000);
+  broadcast();
 }
 
 const app = express();
@@ -177,18 +217,19 @@ function publicState(forHost = false) {
   return {
     roomCode: getSetting('room_code', 'QUIZ'),
 
-    questions: forHost
-      ? questions
-      : questions.map(({ correct, ...safe }) => safe),
-
+    questions: forHost ? questions : [],
+    questionCount: questions.length,
     currentIndex: index,
-
     currentQuestion: question
-      ? (forHost || revealed
+      ? (forHost || (questionVisible && revealed)
           ? question
-          : (({ correct, ...safe }) => safe)(question))
+          : (questionVisible
+              ? (({ correct, ...safe }) => safe)(question)
+              : null))
       : null,
-
+    questionVisible,
+    roundPhase,
+    roundDeadline,
     buzzerOpen: getSetting('buzzer_open', '0') === '1',
     buzzerDeadline,
     answerModeOpen,
@@ -198,14 +239,17 @@ function publicState(forHost = false) {
 
     buzzes: buzzes.map(b => ({
       teamId: b.teamId,
-      teamName:
-        db.prepare('SELECT name FROM teams WHERE id = ?')
-          .get(b.teamId)?.name || 'Team',
+      teamName: db.prepare('SELECT name FROM teams WHERE id = ?').get(b.teamId)?.name || 'Team',
       order: b.order,
-      awarded: b.awarded,
-      submitted: Boolean(b.submitted),
-      selectedOption: forHost ? b.selectedOption : undefined,
-      isCorrect: revealed ? Boolean(b.isCorrect) : undefined
+      awarded: b.awarded
+    })),
+    answers: teamAnswers.map(answer => ({
+      teamId: answer.teamId,
+      teamName: db.prepare('SELECT name FROM teams WHERE id = ?').get(answer.teamId)?.name || 'Team',
+      submitted: true,
+      selectedOption: (forHost || revealed) ? answer.selectedOption : undefined,
+      isCorrect: revealed ? Boolean(answer.isCorrect) : undefined,
+      awarded: Boolean(answer.awarded)
     })),
 
     history: forHost
@@ -378,7 +422,7 @@ io.on('connection', socket => {
     });
   });
 
-  // TEAM BUZZER: ONLY FIRST TWO TEAMS ARE ACCEPTED
+  // TEAM BUZZER: ANY REGISTERED TEAM MAY BUZZ DURING THE 10-SECOND WINDOW
   socket.on('team:buzz', ({ teamId, token } = {}) => {
     const team = db
       .prepare('SELECT id, name, token_hash FROM teams WHERE id = ?')
@@ -407,13 +451,6 @@ io.on('connection', socket => {
       return emitError(
         socket,
         'Your team has already buzzed for this question.'
-      );
-    }
-
-    if (buzzes.length >= 2) {
-      return emitError(
-        socket,
-        'The first two teams have already buzzed.'
       );
     }
 
@@ -528,6 +565,9 @@ io.on('connection', socket => {
     setSetting('revealed', '0');
     answerModeOpen = false;
     stopBuzzerTimer();
+    questionVisible = false;
+    roundPhase = 'hidden';
+    teamAnswers = [];
 
     broadcast();
   });
@@ -581,66 +621,58 @@ io.on('connection', socket => {
     broadcast();
   });
 
-  // OPEN BUZZER FOR A QUESTION
-  socket.on('host:quiz:start-buzzer', () => {
-    if (!requireHost(socket)) {
-      return emitError(socket, 'Host login required.');
-    }
-
-    if (!currentQuestion()) {
-      return emitError(socket, 'Add a question first.');
-    }
-
-    buzzes = [];
-    answerModeOpen = false;
-    stopBuzzerTimer();
-
-    setSetting('buzzer_open', '1');
-    setSetting('revealed', '0');
-    buzzerDeadline = Date.now() + 15000;
-    buzzerTimer = setTimeout(() => {
-      setSetting('buzzer_open', '0');
-      stopBuzzerTimer();
-      broadcast();
-    }, 15000);
-
-    broadcast();
-  });
-
-  // CLOSE BUZZER
-  socket.on('host:quiz:close-buzzer', () => {
-    if (!requireHost(socket)) {
-      return emitError(socket, 'Host login required.');
-    }
-
-    setSetting('buzzer_open', '0');
-    stopBuzzerTimer();
-    broadcast();
-  });
-
-  // HOST UNLOCKS ANSWER ENTRY ON ELIGIBLE TEAM DEVICES
-  socket.on('host:answer-mode:unlock', () => {
+  // HOST REVEALS THE QUESTION; THEN A 45-SECOND ROUND RUNS AUTOMATICALLY
+  socket.on('host:quiz:show-question', () => {
     if (!requireHost(socket)) return emitError(socket, 'Host login required.');
-    if (getSetting('revealed', '0') === '1') return emitError(socket, 'The answer has already been revealed.');
-    if (!buzzes.length) return emitError(socket, 'Wait for at least one team to buzz first.');
-    setSetting('buzzer_open', '0');
+    if (!currentQuestion()) return emitError(socket, 'Import or add questions first.');
+    if (roundPhase !== 'hidden') return emitError(socket, 'Finish the current question before starting the next round.');
     stopBuzzerTimer();
-    answerModeOpen = true;
+    buzzes = [];
+    teamAnswers = [];
+    answerModeOpen = false;
+    questionVisible = true;
+    setSetting('buzzer_open', '0');
+    setSetting('revealed', '0');
+    roundPhase = 'reading';
+    roundDeadline = Date.now() + 20000;
+    roundTimer = setTimeout(() => { roundTimer = null; startBuzzerWindow(); }, 20000);
     broadcast();
   });
 
-  // TEAM SUBMITS ITS OWN ANSWER AFTER HOST UNLOCKS ANSWER MODE
+  // Backwards-compatible event alias.
+  socket.on('host:quiz:start-buzzer', () => {
+    if (!requireHost(socket)) return emitError(socket, 'Host login required.');
+    if (roundPhase !== 'hidden') return emitError(socket, 'Finish the current question first.');
+    if (!currentQuestion()) return emitError(socket, 'Import or add questions first.');
+    stopBuzzerTimer();
+    buzzes = [];
+    teamAnswers = [];
+    answerModeOpen = false;
+    questionVisible = true;
+    setSetting('buzzer_open', '0');
+    setSetting('revealed', '0');
+    roundPhase = 'reading';
+    roundDeadline = Date.now() + 20000;
+    roundTimer = setTimeout(() => { roundTimer = null; startBuzzerWindow(); }, 20000);
+    broadcast();
+  });
+
+  socket.on('host:quiz:close-buzzer', () => {
+    if (!requireHost(socket)) return emitError(socket, 'Host login required.');
+    if (roundPhase !== 'buzzer') return emitError(socket, 'The buzzer is not currently open.');
+    stopBuzzerTimer();
+    startAnswerWindow();
+  });
+
+  // Every registered team may submit one answer during the 15-second window.
   socket.on('team:answer:submit', ({ teamId, token, optionIndex } = {}) => {
     const team = db.prepare('SELECT id, token_hash FROM teams WHERE id = ?').get(teamId);
     if (!team || !token || hashToken(token) !== team.token_hash) return emitError(socket, 'Team authentication failed.');
-    if (!answerModeOpen || getSetting('revealed', '0') === '1') return emitError(socket, 'The host has not unlocked answer mode.');
-    const buzz = buzzes.find(entry => entry.teamId === team.id && entry.order <= 2);
+    if (roundPhase !== 'answering' || !answerModeOpen) return emitError(socket, 'The answer submission window is closed.');
+    if (teamAnswers.some(answer => answer.teamId === team.id)) return emitError(socket, 'Your team has already submitted an answer.');
     const choice = Number(optionIndex);
-    if (!buzz) return emitError(socket, 'Only the first two teams to buzz can answer.');
-    if (buzz.submitted) return emitError(socket, 'Your team has already submitted its answer.');
     if (!Number.isInteger(choice) || choice < 0 || choice > 3) return emitError(socket, 'Choose option A, B, C, or D.');
-    buzz.selectedOption = choice;
-    buzz.submitted = true;
+    teamAnswers.push({ teamId: team.id, selectedOption: choice, submittedAt: Date.now(), isCorrect: false, awarded: false });
     socket.emit('team:answer:submitted', { teamId: team.id });
     broadcast();
   });
@@ -693,21 +725,10 @@ io.on('connection', socket => {
       return emitError(socket, 'There is no current question.');
     }
 
-    const answeringTeams = buzzes.filter(entry => entry.order <= 2);
-
-    if (
-      answeringTeams.some(
-        entry => !entry.submitted ||
-          entry.selectedOption === null ||
-          entry.selectedOption === undefined
-      )
-    ) {
-      return emitError(
-        socket,
-        'Select an option for each of the first two teams before revealing the answer.'
-      );
+    if (roundPhase !== 'awaiting-reveal') {
+      return emitError(socket, 'Wait until the reading, buzzer, and answer timers finish before revealing.');
     }
-
+    const answeringTeams = teamAnswers;
     setSetting('buzzer_open', '0');
     stopBuzzerTimer();
     answerModeOpen = false;
@@ -721,8 +742,7 @@ io.on('connection', socket => {
       VALUES(?, ?, ?, ?)
     `);
 
-    // Compare the host-recorded option with the correct option.
-    // Award points only once to each correct team.
+    // Award points only to teams that submitted a correct answer before the deadline.
     const awardCorrectTeams = db.transaction(() => {
       for (const entry of answeringTeams) {
         entry.isCorrect = entry.selectedOption === question.correct;
@@ -745,6 +765,9 @@ io.on('connection', socket => {
     awardCorrectTeams();
 
     setSetting('revealed', '1');
+    roundPhase = 'revealed';
+    questionVisible = true;
+    roundDeadline = null;
 
     broadcast();
   });
@@ -767,7 +790,9 @@ io.on('connection', socket => {
     setSetting('revealed', '0');
     answerModeOpen = false;
     stopBuzzerTimer();
-
+    questionVisible = false;
+    roundPhase = 'hidden';
+    teamAnswers = [];
     buzzes = [];
 
     broadcast();
@@ -822,6 +847,7 @@ io.on('connection', socket => {
     db.prepare('DELETE FROM teams WHERE id = ?').run(teamId);
 
     buzzes = buzzes.filter(entry => entry.teamId !== teamId);
+    teamAnswers = teamAnswers.filter(entry => entry.teamId !== teamId);
 
     broadcast();
   });
