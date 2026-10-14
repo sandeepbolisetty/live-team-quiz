@@ -6,13 +6,14 @@
 <style>
 :root{--bg:#f4f7ff;--panel:#fff;--panel2:#edf3ff;--text:#182849;--muted:#61708e;--cyan:#2864dc;--green:#13845b;--red:#d72653;--gold:#ffbf3f}
 body{background:radial-gradient(ellipse at 8% 0%,#e1eaff 0,transparent 35%),radial-gradient(ellipse at 95% 8%,#ffe1ec 0,transparent 32%),linear-gradient(145deg,#f7f9ff,#eef4ff 48%,#fff4f7);color:#182849;min-height:100vh}
-.vfstr-masthead{position:relative;display:grid;grid-template-columns:minmax(150px,230px) minmax(0,1fr) minmax(150px,230px);align-items:center;gap:24px;padding:22px clamp(16px,4vw,64px) 26px;background:linear-gradient(115deg,#fff 0%,#f4f8ff 47%,#fff3f7 100%);border-bottom:6px solid transparent;border-image:linear-gradient(90deg,#2364db,#9a55df,#ed315c,#ffbd45) 1;box-shadow:0 12px 32px #263f7818;overflow:hidden}
+.vfstr-masthead{position:relative;display:grid;grid-template-columns:minmax(150px,230px) minmax(0,1fr) minmax(150px,230px);align-items:center;gap:24px;padding:22px clamp(16px,4vw,64px) 26px;background:linear-gradient(115deg,#eaf1ff 0%,#f4f8ff 47%,#ffeaf2 100%);border-bottom:6px solid transparent;border-image:linear-gradient(90deg,#2364db,#9a55df,#ed315c,#ffbd45) 1;box-shadow:0 12px 32px #263f7818;overflow:hidden}
 .vfstr-masthead:before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 10% 50%,#b7d0ff55,transparent 24%),radial-gradient(circle at 90% 50%,#ffc5d955,transparent 24%);pointer-events:none}
-.vfstr-logo{position:relative;width:100%;max-width:210px;height:142px;object-fit:contain;display:block;margin:auto;filter:drop-shadow(0 8px 10px #18365c22);transition:transform .25s ease}
+.vfstr-logo{position:relative;width:100%;max-width:230px;height:154px;object-fit:contain;display:block;margin:auto;mix-blend-mode:multiply;filter:drop-shadow(0 8px 10px #18365c22);transition:transform .25s ease}
 .vfstr-logo:hover{transform:scale(1.06)}
 .vfstr-brand{text-align:center;min-width:0;position:relative}
 .vfstr-brand .eyebrow{font-size:.75rem;letter-spacing:.13em;text-transform:uppercase;font-weight:850;color:#d72653;margin:0 0 9px}
-.vfstr-brand h1{font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:clamp(1.4rem,3vw,2.5rem);line-height:1.12;color:#163b79;margin:0;text-wrap:balance}
+.vfstr-brand h1{font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:clamp(1.6rem,3.4vw,2.9rem);line-height:1.12;color:#163b79;margin:0;text-wrap:balance;font-weight:900}
+.deemed-label{font-size:clamp(.72rem,1.2vw,.9rem);font-weight:650;color:#536780;margin:5px 0 0}
 .vfstr-brand .subtitle{font-size:1rem;color:#536780;margin:10px 0 0;font-weight:600}
 .vfstr-brand .quiz-label{display:inline-flex;align-items:center;gap:8px;margin-top:14px;background:linear-gradient(100deg,#245ddd,#854be1 52%,#df326b);color:white;padding:9px 19px;border-radius:999px;font-weight:850;letter-spacing:.09em;font-size:.78rem;box-shadow:0 7px 18px #5a58ce35}
 .vfstr-brand .quiz-label:before{content:'●';font-size:.7rem;color:#7dffcb;animation:livePulse 1.5s infinite}
@@ -53,20 +54,25 @@ input:focus,select:focus,textarea:focus{outline:2px solid #477eae}
 .round-timer{font-size:1.15rem;font-weight:850;color:#a51f36;background:#fff3f4;border:1px solid #f0c4ca;border-radius:8px;padding:10px 14px;margin:10px 0;text-align:center;font-variant-numeric:tabular-nums}
 .site-credit{margin:0 auto 24px;max-width:1480px;padding:20px clamp(14px,4vw,56px);text-align:center;background:#fff;border-top:3px solid #b51f35;color:#123b68}
 .site-credit strong,.site-credit span{display:block}
+.site-credit .maker-credit a,.site-credit .president-credit a{color:#245ddd;text-decoration:none;font-weight:850}
+.site-credit .maker-credit a:hover,.site-credit .president-credit a:hover{text-decoration:underline}
+.site-credit .president-credit{margin-top:12px;padding-top:12px;border-top:1px solid #dce5f7}
 .site-credit span{color:#536780;margin-top:3px}
 .site-credit a{display:inline-block;margin-top:10px;color:#123b68;font-weight:750;text-decoration:none;border:1px solid #c8d8e9;border-radius:5px;padding:7px 12px}
 .site-credit a:hover{text-decoration:underline}
 .site-credit p{font-size:.82rem;color:#596b83;margin:12px 0 0}
-@media(max-width:760px){.vfstr-masthead{grid-template-columns:minmax(84px,1fr) minmax(0,2fr) minmax(84px,1fr);gap:8px;padding:16px 10px 19px}.vfstr-logo{width:100%;max-width:120px;height:100px}.vfstr-brand .eyebrow{font-size:.59rem;letter-spacing:.06em}.vfstr-brand h1{font-size:clamp(1rem,3.5vw,1.6rem)}.vfstr-brand .subtitle{font-size:.76rem}.vfstr-brand .quiz-label{font-size:.62rem;padding:7px 10px}.vfstr-room{padding:8px 12px}.answer-picks{grid-template-columns:1fr}}
-@media(max-width:460px){.vfstr-masthead{grid-template-columns:1fr 1fr;gap:10px}.vfstr-logo{max-width:130px;height:92px}.vfstr-brand{grid-column:1/-1;grid-row:1}.vfstr-logo:first-child{grid-column:1;grid-row:2}.vfstr-logo:last-child{grid-column:2;grid-row:2}.vfstr-brand .eyebrow{font-size:.63rem}.vfstr-brand h1{font-size:1.4rem}.vfstr-brand .subtitle{font-size:.8rem}}
+@media(max-width:760px){.vfstr-masthead{grid-template-columns:minmax(84px,1fr) minmax(0,2fr) minmax(84px,1fr);gap:8px;padding:16px 10px 19px}.vfstr-logo{width:100%;max-width:120px;height:100px}.vfstr-brand .eyebrow{font-size:.59rem;letter-spacing:.06em}.vfstr-brand h1{font-size:clamp(1rem,3.5vw,1.6rem)}
+.deemed-label{font-size:.7rem}.vfstr-brand .subtitle{font-size:.76rem}.vfstr-brand .quiz-label{font-size:.62rem;padding:7px 10px}.vfstr-room{padding:8px 12px}.answer-picks{grid-template-columns:1fr}}
+@media(max-width:460px){.vfstr-masthead{grid-template-columns:1fr 1fr;gap:10px}.vfstr-logo{max-width:130px;height:92px}.vfstr-brand{grid-column:1/-1;grid-row:1}.vfstr-logo:first-child{grid-column:1;grid-row:2}.vfstr-logo:last-child{grid-column:2;grid-row:2}.vfstr-brand .eyebrow{font-size:.63rem}.vfstr-brand h1{font-size:1.4rem}
+.deemed-label{font-size:.72rem}.vfstr-brand .subtitle{font-size:.8rem}}
 </style>
 </head>
 <body>
 <header class="vfstr-masthead">
  <img id="vignanLogo" class="vfstr-logo" src="/vignan-logo.jpeg" alt="Vignan University logo" onerror="tryLogoFallback(this,'vignan')">
  <div class="vfstr-brand">
-  <p class="eyebrow">Vignan's Foundation for Science, Technology &amp; Research</p>
-  <h1>VFSTR Deemed to be University</h1>
+  <h1>Vignan's Foundation for Science, Technology &amp; Research</h1>
+  <p class="deemed-label">(Deemed to be University)</p>
   <p class="subtitle">Knowledge • Innovation • Excellence</p>
   <span class="quiz-label">LIVE TEAM QUIZ PORTAL</span>
  </div>
@@ -115,7 +121,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #477eae}
 </section>
 <section id="projector" class="view"><div class="card projector"><div class="row spread"><h2>Projector view</h2><span id="projectorRoom" class="pill"></span></div><div id="projectorTimer" class="round-timer">Waiting</div><div id="projectorQuestion" class="question-box"></div><h2>Accepted buzzes</h2><div id="projectorBuzzes"></div></div></section>
 <section id="leaderboard" class="view"><div class="card"><div class="row spread"><h2>Live leaderboard</h2><button id="resetScores" class="danger" hidden>Reset scores</button></div><div id="leaderboardTable"></div></div></section>
-<footer class="site-credit"><div><strong>Designed &amp; developed by Sandeep Bolisetty</strong><span>Robotics &amp; Automation</span></div><a href="https://www.linkedin.com/in/sandeep-bolisetty-b7aa4a30b/" target="_blank" rel="noopener noreferrer">Connect on LinkedIn ↗</a><p>Online version: use HTTPS, keep the host PIN private, and test the quiz on multiple networks before the event.</p></footer>
+<footer class="site-credit"><div class="maker-credit"><strong>Designed &amp; developed by <a href="https://www.linkedin.com/in/sandeep-bolisetty-b7aa4a30b/" target="_blank" rel="noopener noreferrer">Sandeep Bolisetty</a></strong><span>Robotics &amp; Automation</span></div><div class="president-credit"><strong>SPARC President: <a href="https://www.linkedin.com/in/pravyanth-marreddy-3aa92a324" target="_blank" rel="noopener noreferrer">Pravyanth Marreddy</a></strong><span>SPARC — Student Robotics &amp; Automation Club</span></div><a href="https://www.linkedin.com/in/sandeep-bolisetty-b7aa4a30b/" target="_blank" rel="noopener noreferrer">Connect with the web developer on LinkedIn ↗</a><p>Online version: use HTTPS, keep the host PIN private, and test the quiz on multiple networks before the event.</p></footer>
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 <script>
