@@ -220,12 +220,10 @@ function publicState(forHost = false) {
     questions: forHost ? questions : [],
     questionCount: questions.length,
     currentIndex: index,
-    currentQuestion: question
-      ? (forHost || (questionVisible && revealed)
+    currentQuestion: questionVisible && question
+      ? (forHost || revealed
           ? question
-          : (questionVisible
-              ? (({ correct, ...safe }) => safe)(question)
-              : null))
+          : (({ correct, ...safe }) => safe)(question))
       : null,
     questionVisible,
     roundPhase,
@@ -435,8 +433,8 @@ io.on('connection', socket => {
       );
     }
 
-    if (getSetting('buzzer_open', '0') !== '1') {
-      return emitError(socket, 'The host has not opened the buzzer.');
+    if (getSetting('buzzer_open', '0') !== '1' || roundPhase !== 'buzzer' || !roundDeadline || Date.now() >= roundDeadline) {
+      return emitError(socket, 'The 10-second buzzer window is closed.');
     }
 
     if (getSetting('revealed', '0') === '1') {
@@ -668,7 +666,7 @@ io.on('connection', socket => {
   socket.on('team:answer:submit', ({ teamId, token, optionIndex } = {}) => {
     const team = db.prepare('SELECT id, token_hash FROM teams WHERE id = ?').get(teamId);
     if (!team || !token || hashToken(token) !== team.token_hash) return emitError(socket, 'Team authentication failed.');
-    if (roundPhase !== 'answering' || !answerModeOpen) return emitError(socket, 'The answer submission window is closed.');
+    if (roundPhase !== 'answering' || !answerModeOpen || !roundDeadline || Date.now() >= roundDeadline) return emitError(socket, 'The 15-second answer submission window is closed.');
     if (teamAnswers.some(answer => answer.teamId === team.id)) return emitError(socket, 'Your team has already submitted an answer.');
     const choice = Number(optionIndex);
     if (!Number.isInteger(choice) || choice < 0 || choice > 3) return emitError(socket, 'Choose option A, B, C, or D.');
