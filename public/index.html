@@ -40,6 +40,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #477eae}
 .answer-pick .field{margin:8px 0 0}
 #teamAnswerArea{margin-top:16px}
 #buzzerTimer{font-variant-numeric:tabular-nums;color:#a51f36}
+.round-timer{font-size:1.15rem;font-weight:850;color:#a51f36;background:#fff3f4;border:1px solid #f0c4ca;border-radius:8px;padding:10px 14px;margin:10px 0;text-align:center;font-variant-numeric:tabular-nums}
 @media(max-width:600px){.vfstr-masthead{grid-template-columns:66px minmax(0,1fr) 66px;gap:8px;padding:12px 10px}.vfstr-logo{width:62px;height:62px}.vfstr-brand .eyebrow{font-size:.58rem;letter-spacing:.08em}.vfstr-brand .subtitle{font-size:.75rem}.vfstr-brand .quiz-label{font-size:.67rem;padding:4px 8px}.vfstr-room{padding:8px 12px}.answer-picks{grid-template-columns:1fr}}
 </style>
 </head>
@@ -67,9 +68,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid #477eae}
 <section id="host" class="view">
  <div id="hostLogin" class="card narrow"><h2>Host login</h2><p class="muted">Enter the private HOST_PIN configured on the server.</p><form id="loginForm"><div class="field"><label>Host PIN</label><input id="hostPin" type="password" autocomplete="current-password" required></div><button class="primary">Sign in as host</button></form></div>
  <div id="hostPanel" hidden>
-  <div class="card"><div class="row spread"><div><h2>Host dashboard</h2><p class="muted">This panel controls the shared live quiz.</p></div><div class="row"><button id="enableSound">🔊 Enable sound</button><button class="primary" id="openBuzz">Activate buzzer</button><button id="closeBuzz">Close buzzer</button><button id="unlockAnswers">Unlock team answers</button><button class="gold" id="reveal">Reveal answer</button><button class="danger" id="nextQ">Next question</button></div></div>
-   <div class="stats"><div><span>Teams</span><b id="teamCount">0</b></div><div><span>Questions</span><b id="questionCount">0</b></div><div><span>Buzzer</span><b id="buzzStatus">Closed</b></div><div><span>Buzzer timer</span><b id="buzzerTimer">—</b></div><div><span>Question</span><b id="questionNum">—</b></div></div>
-   <div id="hostCurrent" class="question-box"></div><h3>Accepted buzzes</h3><div id="hostBuzzes"></div><h3>First and Second Buzzers — Record Spoken Options</h3><p class="muted">Select each eligible team’s spoken option before revealing the answer.</p><div id="hostAnswerPicks" class="answer-picks"></div>
+  <div class="card"><div class="row spread"><div><h2>Host dashboard</h2><p class="muted">This panel controls the shared live quiz.</p></div><div class="row"><button id="enableSound">🔊 Enable sound</button><button class="primary" id="openBuzz">Reveal question / Start round</button><button id="closeBuzz">Close buzzer early</button><button class="gold" id="reveal">Reveal answer</button><button class="danger" id="nextQ">Next question</button></div></div>
+   <div class="stats"><div><span>Teams</span><b id="teamCount">0</b></div><div><span>Questions</span><b id="questionCount">0</b></div><div><span>Buzzer</span><b id="buzzStatus">Closed</b></div><div><span>Round timer</span><b id="buzzerTimer">Waiting</b></div><div><span>Question</span><b id="questionNum">—</b></div></div>
+   <div id="hostCurrent" class="question-box"></div><h3>Accepted buzzes</h3><div id="hostBuzzes"></div><h3>Team answer submissions</h3><p class="muted">All registered teams may submit one option during the 15-second answer window. Teams that do not submit receive no points.</p><div id="hostAnswerPicks" class="answer-picks"></div>
   </div>
   <div class="grid2">
    <div class="card"><h2>Add / edit question</h2><form id="questionForm"><input type="hidden" id="qId"><div class="field"><label>Question</label><textarea id="qText" required></textarea></div>
@@ -91,11 +92,11 @@ input:focus,select:focus,textarea:focus{outline:2px solid #477eae}
 </section>
 <section id="buzzer" class="view">
  <div class="grid2">
-  <div class="card"><h2>Team buzzer</h2><div id="teamSession"></div><div id="buzzerQuestion" class="question-box"></div><button id="buzzButton" class="buzzer" disabled>BUZZ!</button><div id="buzzerMessage" class="notice">Register this device as a team's representative first.</div><div id="teamAnswerArea"></div></div>
+  <div class="card"><h2>Team buzzer</h2><div id="teamSession"></div><div id="teamTimer" class="round-timer">Waiting</div><div id="buzzerQuestion" class="question-box"></div><button id="buzzButton" class="buzzer" disabled>BUZZ!</button><div id="buzzerMessage" class="notice">Register this device as a team's representative first.</div><div id="teamAnswerArea"></div></div>
   <div class="card"><h2>Buzz order</h2><div id="buzzerOrder"></div></div>
  </div>
 </section>
-<section id="projector" class="view"><div class="card projector"><div class="row spread"><h2>Projector view</h2><span id="projectorRoom" class="pill"></span></div><div id="projectorQuestion" class="question-box"></div><h2>Accepted buzzes</h2><div id="projectorBuzzes"></div></div></section>
+<section id="projector" class="view"><div class="card projector"><div class="row spread"><h2>Projector view</h2><span id="projectorRoom" class="pill"></span></div><div id="projectorTimer" class="round-timer">Waiting</div><div id="projectorQuestion" class="question-box"></div><h2>Accepted buzzes</h2><div id="projectorBuzzes"></div></div></section>
 <section id="leaderboard" class="view"><div class="card"><div class="row spread"><h2>Live leaderboard</h2><button id="resetScores" class="danger" hidden>Reset scores</button></div><div id="leaderboardTable"></div></div></section>
 <p class="footer">Online version: use HTTPS, keep the host PIN private, and test the quiz on multiple networks before the event.</p>
 </main>
