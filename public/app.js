@@ -328,7 +328,7 @@
     if (data.roundDeadline) buzzerCountdownInterval = setInterval(updateRoundCountdown, 250);
 
     $('questionNum').textContent = question
-      ? `${data.currentIndex + 1}/${questions.length}`
+      ? `${data.currentIndex + 1}/${data.questionCount ?? questions.length}`
       : '—';
 
     if (isHost) {
