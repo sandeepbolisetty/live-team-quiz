@@ -306,6 +306,14 @@ io.on('connection', socket => {
     broadcast();
   });
 
+  // HOST LOGOUT
+  socket.on('host:logout', () => {
+    if (socket.id === hostSocketId) hostSocketId = null;
+    socket.data.isHost = false;
+    socket.emit('host:logout-ok');
+    broadcast();
+  });
+
   // TEAM REGISTRATION
   socket.on('team:register', ({ name, members, repIndex } = {}) => {
     if (
