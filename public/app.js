@@ -269,22 +269,17 @@
   }
 
   // Host selects the option each team said aloud.
-  function renderHostAnswers(buzzes, question, revealed, answerModeOpen) {
-    if (!buzzes?.length) return '<div class="empty">Waiting for teams to buzz.</div>';
-    const firstTwo = buzzes.filter(buzz => buzz.order <= 2);
-    return `
-      <div class="answer-picks">
-        ${firstTwo.map(buzz => `
-          <div class="answer-pick">
-            <b>Team ${buzz.order}: ${esc(buzz.teamName)}</b>
-            <p class="muted small">${buzz.order === 1 ? 'First to buzz' : 'Second to buzz'}</p>
-            <p>${buzz.submitted ? '<span class="badge green">Answer submitted</span>' : '<span class="badge">Waiting for answer</span>'}</p>
-            ${revealed ? `<div class="notice ${buzz.isCorrect ? '' : 'warn'}">Submitted: <b>${buzz.selectedOption == null ? '—' : 'ABCD'[buzz.selectedOption]}</b><br>${buzz.isCorrect ? `Correct — ${question?.points || 1} points awarded` : 'Incorrect — 0 points'}</div>` : ''}
-          </div>
-        `).join('')}
-      </div>
-      <p class="muted small">${answerModeOpen ? 'Answer mode is unlocked. Eligible teams select an option on their own phones and submit.' : 'Wait for the buzzer timer to end or close the buzzer, then unlock answer mode.'}</p>
-    `;
+  function renderHostAnswers(answers, teams, question, revealed, phase) {
+    if (!teams?.length) return '<div class="empty">No teams registered yet.</div>';
+    const byTeam = new Map((answers || []).map(answer => [answer.teamId, answer]));
+    return `<div class="answer-picks">${teams.map(team => {
+      const answer = byTeam.get(team.id);
+      return `<div class="answer-pick"><b>${esc(team.name)}</b>
+        <p>${answer ? '<span class="badge green">Submitted</span>' : '<span class="badge">Not submitted</span>'}</p>
+        ${answer && (revealed || phase === 'awaiting-reveal') ? `<p>Option: <b>${'ABCD'[answer.selectedOption]}</b></p>` : ''}
+        ${revealed ? `<div class="notice ${answer?.isCorrect ? '' : 'warn'}">${answer?.isCorrect ? `Correct — ${question?.points || 1} points` : 'No points'}</div>` : ''}
+      </div>`;
+    }).join('')}</div>`;
   }
 
   function table(rows) {
@@ -320,38 +315,31 @@
       : '<div class="empty">No teams registered yet.</div>';
 
     $('teamCount').textContent = teams.length;
-    $('questionCount').textContent = questions.length;
+    $('questionCount').textContent = data.questionCount ?? questions.length;
     $('buzzStatus').textContent = data.buzzerOpen ? 'OPEN' : 'Closed';
     if (buzzerCountdownInterval) clearInterval(buzzerCountdownInterval);
-    const updateBuzzerCountdown = () => {
-      const remaining = data.buzzerOpen && data.buzzerDeadline
-        ? Math.max(0, Math.ceil((data.buzzerDeadline - Date.now()) / 1000))
-        : 0;
-      if ($('buzzerTimer')) $('buzzerTimer').textContent = data.buzzerOpen ? `${remaining}s` : '—';
+    const phaseLabels = { hidden: 'Waiting', reading: 'Read question', buzzer: 'Buzz now', answering: 'Submit answer', 'awaiting-reveal': 'Time up', revealed: 'Complete' };
+    const updateRoundCountdown = () => {
+      const remaining = data.roundDeadline ? Math.max(0, Math.ceil((data.roundDeadline - Date.now()) / 1000)) : 0;
+      const value = data.roundDeadline ? `${phaseLabels[data.roundPhase] || 'Round'}: ${remaining}s` : (phaseLabels[data.roundPhase] || 'Waiting');
+      ['buzzerTimer','teamTimer','projectorTimer'].forEach(id => { if ($(id)) $(id).textContent = value; });
     };
-    updateBuzzerCountdown();
-    if (data.buzzerOpen && data.buzzerDeadline) buzzerCountdownInterval = setInterval(updateBuzzerCountdown, 250);
+    updateRoundCountdown();
+    if (data.roundDeadline) buzzerCountdownInterval = setInterval(updateRoundCountdown, 250);
 
     $('questionNum').textContent = question
       ? `${data.currentIndex + 1}/${questions.length}`
       : '—';
 
     if (isHost) {
-      $('hostCurrent').innerHTML =
-        renderQuestion(question, data.revealed, true);
-
+      $('hostCurrent').innerHTML = renderQuestion(question, data.revealed, true);
       $('hostBuzzes').innerHTML = renderBuzzes(buzzes);
-      $('hostAnswerPicks').innerHTML = renderHostAnswers(buzzes, question, data.revealed, data.answerModeOpen);
-
-      const firstTwo = buzzes.filter(buzz => buzz.order <= 2);
-      const allAnswersSubmitted = firstTwo.length > 0 && firstTwo.every(buzz => buzz.submitted);
-      $('unlockAnswers').disabled = Boolean(data.revealed) || !firstTwo.length || Boolean(data.answerModeOpen);
-      $('unlockAnswers').textContent = data.answerModeOpen ? 'Answer mode unlocked' : 'Unlock team answers';
-      $('reveal').disabled = Boolean(data.revealed) || !allAnswersSubmitted;
-
-      $('reveal').textContent = data.revealed
-        ? 'Answer revealed'
-        : 'Reveal answer & award points';
+      $('hostAnswerPicks').innerHTML = renderHostAnswers(data.answers || [], teams, question, data.revealed, data.roundPhase);
+      $('openBuzz').textContent = data.roundPhase === 'hidden' ? 'Reveal question / Start round' : 'Question round in progress';
+      $('openBuzz').disabled = data.roundPhase !== 'hidden';
+      $('closeBuzz').disabled = data.roundPhase !== 'buzzer';
+      $('reveal').disabled = Boolean(data.revealed) || data.roundPhase !== 'awaiting-reveal';
+      $('reveal').textContent = data.revealed ? 'Answer revealed' : 'Reveal answer & award points';
 
       $('hostTeams').innerHTML = teams.length
         ? table(`
@@ -473,37 +461,31 @@
 
     $('projectorBuzzes').innerHTML = renderBuzzes(buzzes);
 
-    $('buzzerQuestion').innerHTML =
-      renderQuestion(question, data.revealed, false);
-
+    $('buzzerQuestion').innerHTML = renderQuestion(question, data.revealed, false);
+    $('projectorQuestion').innerHTML = renderQuestion(question, data.revealed, false);
     $('buzzerOrder').innerHTML = renderBuzzes(buzzes);
 
     const myTeam = teams.find(team => team.id === teamId);
-    const myBuzz = buzzes.find(buzz => buzz.teamId === teamId && buzz.order <= 2);
+    const myAnswer = (data.answers || []).find(answer => answer.teamId === teamId);
     const answerArea = $('teamAnswerArea');
     if (answerArea) {
-      if (!myTeam || !myBuzz) {
+      if (!myTeam || !data.questionVisible) {
         answerArea.innerHTML = '';
       } else if (data.revealed) {
-        answerArea.innerHTML = '<div class="notice">Answer round finished. Check the revealed result.</div>';
-      } else if (!data.answerModeOpen) {
-        answerArea.innerHTML = '<div class="notice">You are eligible to answer. Waiting for the host to unlock answer mode.</div>';
-      } else if (myBuzz.submitted) {
-        answerArea.innerHTML = '<div class="notice">Your answer has been submitted. Wait for the host to reveal.</div>';
+        answerArea.innerHTML = `<div class="notice">Round complete. ${myAnswer?.isCorrect ? 'Correct answer — points awarded.' : 'No points for this question.'}</div>`;
+      } else if (myAnswer) {
+        answerArea.innerHTML = '<div class="notice">Answer submitted successfully. Wait for the host to reveal the result.</div>';
+      } else if (data.roundPhase !== 'answering') {
+        const phaseMessages = { reading: 'Read the question. The buzzer opens after 20 seconds.', buzzer: 'Buzzer is open. You can buzz now; answer submission starts after the buzzer window.', 'awaiting-reveal': 'Answer time is over. Wait for the host to reveal the result.' };
+        answerArea.innerHTML = `<div class="notice">${phaseMessages[data.roundPhase] || 'Wait for the answer submission window.'}</div>`;
       } else {
         answerArea.innerHTML = `
-          <div class="answer-pick">
-            <h3>Submit your answer</h3>
-            <p>Select your team's answer. You can submit only once.</p>
-            <label class="field"><span>Choose an option</span>
-              <select id="teamAnswerChoice" required>
-                <option value="">Select A, B, C, or D…</option>
-                ${(question?.options || []).map((option, index) => `<option value="${index}">${'ABCD'[index]}. ${esc(option)}</option>`).join('')}
-              </select>
-            </label>
-            <button type="button" class="primary" id="submitTeamAnswer">Submit Answer</button>
-          </div>
-        `;
+          <div class="answer-pick"><h3>Submit your answer</h3><p>Choose one option and submit before the 15-second timer ends.</p>
+            <label class="field"><span>Choose an option</span><select id="teamAnswerChoice" required>
+              <option value="">Select A, B, C, or D…</option>
+              ${(question?.options || []).map((option, index) => `<option value="${index}">${'ABCD'[index]}. ${esc(option)}</option>`).join('')}
+            </select></label>
+            <button type="button" class="primary" id="submitTeamAnswer">Submit Answer</button></div>`;
         $('submitTeamAnswer').addEventListener('click', () => {
           const choice = $('teamAnswerChoice').value;
           if (choice === '') return toast('Select an option before submitting.');
@@ -527,28 +509,21 @@
         </div>
       `;
 
-    $('buzzButton').disabled = !(
-      myTeam &&
-      data.buzzerOpen &&
-      !data.revealed &&
-      !buzzes.some(buzz => buzz.teamId === teamId)
-    );
-
+    $('buzzButton').disabled = !(myTeam && data.buzzerOpen && !data.revealed && !buzzes.some(buzz => buzz.teamId === teamId));
     if (!myTeam) {
-      $('buzzerMessage').textContent =
-        'Register this device as a team representative first.';
-    } else if (!data.buzzerOpen) {
-      $('buzzerMessage').textContent =
-        'Waiting for the host to activate the buzzer.';
-    } else if (buzzes.some(buzz => buzz.teamId === teamId)) {
-      $('buzzerMessage').textContent =
-        'Your team has already buzzed. Wait for the host.';
-    } else if (buzzes.length >= 2) {
-      $('buzzerMessage').textContent =
-        'The first two teams have already buzzed.';
+      $('buzzerMessage').textContent = 'Register this device as a team representative first.';
+    } else if (data.roundPhase === 'reading') {
+      $('buzzerMessage').textContent = 'Read the question. Buzzer opens automatically after 20 seconds.';
+    } else if (data.buzzerOpen && buzzes.some(buzz => buzz.teamId === teamId)) {
+      $('buzzerMessage').textContent = 'Your team has buzzed. You can still submit your answer during the answer window.';
+    } else if (data.buzzerOpen) {
+      $('buzzerMessage').textContent = 'Buzzer is open for 10 seconds. Tap BUZZ if you wish.';
+    } else if (data.roundPhase === 'answering') {
+      $('buzzerMessage').textContent = 'Answer submission is open for 15 seconds.';
+    } else if (data.roundPhase === 'awaiting-reveal') {
+      $('buzzerMessage').textContent = 'Submission time has ended. Wait for the host to reveal the result.';
     } else {
-      $('buzzerMessage').textContent =
-        'Buzzer is open — tap once when you want to answer.';
+      $('buzzerMessage').textContent = 'Waiting for the host to reveal the next question.';
     }
 
     // Live leaderboard.
@@ -602,15 +577,11 @@
 
   // Host controls.
   $('openBuzz').addEventListener('click', () => {
-    socket.emit('host:quiz:start-buzzer');
+    socket.emit('host:quiz:show-question');
   });
 
   $('closeBuzz').addEventListener('click', () => {
     socket.emit('host:quiz:close-buzzer');
-  });
-
-  $('unlockAnswers').addEventListener('click', () => {
-    socket.emit('host:answer-mode:unlock');
   });
 
   $('reveal').addEventListener('click', () => {
@@ -619,8 +590,7 @@
     }
 
     if (confirm(
-      'Reveal the correct answer and automatically award points ' +
-      'to each correct team among the first two buzzers?'
+      'Reveal the correct answer and award points to every team that submitted the correct option before the 15-second deadline?'
     )) {
       socket.emit('host:quiz:reveal');
     }
