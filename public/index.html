@@ -369,6 +369,64 @@ tr:hover td{background:rgba(54,224,194,.045)}
 <style>
 .winner-announcement{margin:14px 0;padding:16px 18px;border:1px solid rgba(54,224,194,.45);border-radius:14px;background:linear-gradient(110deg,rgba(8,75,78,.7),rgba(26,46,92,.7));color:#eafffb;font-weight:800;text-align:center;box-shadow:0 10px 26px rgba(0,0,0,.18)}
 </style>
+
+<style>
+/* COLORFUL LIGHT THEME — keep the existing Vignan and SPARC logo assets and styling */
+html{background:#f7f8ff!important;color-scheme:light}
+body{background:linear-gradient(135deg,#f6f8ff 0%,#f2f7ff 42%,#fff3f8 75%,#fff9e9 100%)!important;color:#192849!important}
+body:before{background:radial-gradient(ellipse at 5% 8%,rgba(76,126,255,.18),transparent 33%),radial-gradient(ellipse at 92% 6%,rgba(255,91,155,.16),transparent 32%),radial-gradient(ellipse at 55% 100%,rgba(43,201,176,.12),transparent 38%),linear-gradient(135deg,#f8faff 0%,#f0f5ff 50%,#fff5f8 100%)!important}
+body:after{opacity:.23;background-image:radial-gradient(circle,rgba(98,124,190,.28) 1px,transparent 1.5px)!important}
+.vfstr-masthead{background:linear-gradient(115deg,#eaf1ff 0%,#f8faff 45%,#fff0f6 100%)!important;box-shadow:0 12px 32px rgba(42,65,120,.12)!important}
+.vfstr-masthead:before{background:radial-gradient(circle at 10% 50%,rgba(93,147,255,.2),transparent 27%),radial-gradient(circle at 90% 50%,rgba(255,104,167,.18),transparent 27%)!important}
+.vfstr-brand h1{color:#173c7b!important;text-shadow:0 2px 0 rgba(255,255,255,.8)!important}
+.deemed-label,.vfstr-brand .subtitle{color:#536780!important}
+.vfstr-brand .eyebrow{color:#d72663!important}
+.vfstr-room{background:linear-gradient(90deg,#eaf1ff,#fff0f6)!important;color:#24416f!important;border-bottom-color:#dce5f7!important}
+nav{background:linear-gradient(100deg,#2456bf,#6950c9 55%,#d74788)!important;border-bottom-color:#ffbd45!important;box-shadow:0 8px 22px rgba(49,66,135,.18)!important}
+nav button{color:#fff!important;border-color:rgba(255,255,255,.4)!important}
+nav button.active,nav button:hover{background:#fff!important;color:#294ca2!important}
+.card{background:rgba(255,255,255,.94)!important;color:#192849!important;border:1px solid #dce5f7!important;box-shadow:0 10px 28px rgba(38,61,117,.10)!important;backdrop-filter:blur(8px)!important}
+.card h2,.card h3,.card label{color:#213e75!important}
+.card p,.muted{color:#61708e!important}
+.hero,.question-box{background:linear-gradient(135deg,#fff 0%,#edf3ff 58%,#fff0f6 100%)!important;border-color:#cbd9f5!important}
+input,select,textarea{background:#fff!important;color:#172b4d!important;border-color:#c5d2e2!important}
+input::placeholder,textarea::placeholder{color:#8290a8!important}
+input:focus,select:focus,textarea:focus{outline:2px solid #6986ef!important}
+button{background:#edf2ff!important;color:#24458d!important;border-color:#cfdbf4!important}
+button.primary{background:linear-gradient(110deg,#2864dc,#8050d8)!important;color:#fff!important}
+button.good{background:linear-gradient(110deg,#0d9b72,#087c65)!important;color:#fff!important}
+button.gold{background:linear-gradient(110deg,#ffcf54,#ffab36)!important;color:#4b3100!important}
+button.danger{background:linear-gradient(110deg,#e23a5c,#b71f4c)!important;color:#fff!important}
+.question-box,.option,.answer-pick{background:linear-gradient(130deg,#f2f6ff,#fff)!important;color:#20355d!important;border-color:#d5def3!important}
+.option.correct{background:linear-gradient(120deg,#e1fff1,#effcf5)!important;border-color:#16794b!important}
+.option:hover{border-color:#9388ed!important}
+.stats>div{background:linear-gradient(145deg,#f3f6ff,#fff)!important;border-color:#d5e0f5!important;color:#20355d!important}
+.stats span{color:#61708e!important}.stats b{color:#20355d!important}
+.pill,.badge{background:#edf2ff!important;color:#2749a0!important;border-color:#d1daf4!important}
+.notice{background:#eef7f2!important;color:#175d3d!important;border-color:#b9dfca!important}
+.notice.warn{background:#fff6df!important;color:#805716!important;border-color:#f1d38b!important}
+.round-timer{background:#fff3f4!important;color:#a51f36!important;border-color:#f0c4ca!important}
+#buzzerTimer{color:#a51f36!important}
+table{background:#fff!important;color:#20355d!important}
+td,th{border-bottom-color:#e0e6f2!important;color:#263b60!important}
+th{background:linear-gradient(100deg,#eaf1ff,#f7eaff)!important;color:#344b9a!important}
+.site-credit{background:linear-gradient(110deg,#fff,#f0f5ff 60%,#fff0f6)!important;border-top-color:#b51f35!important;color:#123b68!important}
+.site-credit span{color:#536780!important}
+.site-credit a,.site-credit .maker-credit a,.site-credit .president-credit a{color:#245ddd!important}
+.site-credit a{border-color:#c8d8e9!important;background:#fff!important}
+#toast{background:#fff!important;border-color:#9bb9ff!important;color:#20355d!important;box-shadow:0 10px 30px rgba(34,53,99,.18)!important}
+.connection-status{background:rgba(255,255,255,.88)!important;border-color:#d7e1f2!important;color:#61708e!important}
+.connection-status.is-online{color:#087d68!important;border-color:#b7e6d7!important}
+.connection-status.is-offline{color:#c22b50!important;border-color:#f1c4cf!important}
+#hostPanel>.card:first-child{border-top:2px solid #36c5a2!important}
+#hostPanel .stats>div:after{background:linear-gradient(90deg,#36c5a2,#4f8cff)!important}
+#openBuzz{background:linear-gradient(110deg,#087f8c,#2868dc)!important;color:#fff!important}
+#reveal{background:linear-gradient(110deg,#a66a0a,#d39a2f)!important;color:#fff!important}
+#nextQ{background:linear-gradient(110deg,#b42a5a,#df4d72)!important;color:#fff!important}
+.winner-announcement{background:linear-gradient(110deg,#e6fff7,#eef1ff)!important;border-color:#9bdcc9!important;color:#174d65!important}
+@media(prefers-reduced-motion:reduce){body:before,body:after{animation:none!important}}
+</style>
+
 </head>
 <body>
 <header class="vfstr-masthead">
