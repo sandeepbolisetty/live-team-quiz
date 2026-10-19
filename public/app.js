@@ -324,8 +324,8 @@
 
     if ($('homeTeamCount')) $('homeTeamCount').textContent = teams.length;
     if ($('homeQuestionCount')) $('homeQuestionCount').textContent = data.questionCount ?? questions.length;
-    const phaseLabels = { hidden: 'Waiting', reading: 'Reading', buzzer: 'Buzzer live', answering: 'Answering', 'awaiting-reveal': 'Review', revealed: 'Complete' };
-    if ($('homeRoundStatus')) $('homeRoundStatus').textContent = phaseLabels[data.roundPhase] || 'Waiting';
+    const homePhaseLabels = { hidden: 'Waiting', reading: 'Reading', buzzer: 'Buzzer live', answering: 'Answering', 'awaiting-reveal': 'Review', revealed: 'Complete' };
+    if ($('homeRoundStatus')) $('homeRoundStatus').textContent = homePhaseLabels[data.roundPhase] || 'Waiting';
     if ($('homeRoundHint')) $('homeRoundHint').textContent = data.buzzerOpen ? 'Teams can buzz now' : (data.roundPhase === 'hidden' ? 'Host will start the first round' : 'Round in progress');
     if ($('joinUrl') && $('joinQr')) {
       const joinUrl = window.location.origin + '/';
