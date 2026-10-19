@@ -122,6 +122,7 @@
 
   socket.on('host:logout-ok', () => {
     isHost = false;
+    hostReconnectPending = false;
     $('hostPin').value = '';
     $('hostLogin').hidden = false;
     $('hostPanel').hidden = true;
@@ -142,6 +143,7 @@
 
   socket.on('host:login-ok', data => {
     isHost = true;
+    hostReconnectPending = false;
 
     $('hostLogin').hidden = true;
     $('hostPanel').hidden = false;
@@ -966,6 +968,8 @@
 
 
   const connectionStatus = document.getElementById('connectionStatus');
+  let hostReconnectPending = false;
+
   function updateConnectionStatus(online) {
     if (!connectionStatus) return;
     connectionStatus.classList.toggle('is-online', !!online);
@@ -974,18 +978,31 @@
     if (label) label.textContent = online ? 'LIVE CONNECTION' : 'RECONNECTING…';
     connectionStatus.setAttribute('aria-label', online ? 'Connected to the live quiz server' : 'Disconnected from the live quiz server');
   }
+
+  function requestHostReauthentication() {
+    const pin = $('hostPin').value;
+    if (!hostReconnectPending || !pin) return;
+    // The server binds host permissions to a Socket.IO connection, so reconnect
+    // requires re-authentication. Reuse the PIN already entered in this page.
+    socket.emit('host:login', { pin });
+  }
+
   updateConnectionStatus(socket.connected);
-  socket.on('connect', () => updateConnectionStatus(true));
+  socket.on('connect', () => {
+    updateConnectionStatus(true);
+    requestHostReauthentication();
+  });
   socket.on('disconnect', () => {
     updateConnectionStatus(false);
     if (isHost) {
+      hostReconnectPending = true;
       isHost = false;
-      $('hostLogin').hidden = false;
       $('hostPanel').hidden = true;
+      $('hostLogin').hidden = false;
       $('resetScores').hidden = true;
       $('exportResults').hidden = true;
       view('host');
-      toast('Host connection lost. After reconnecting, sign in again to resume host controls.');
+      toast('Connection interrupted. Reconnecting and restoring host access…');
     }
   });
   socket.on('connect_error', () => updateConnectionStatus(false));
