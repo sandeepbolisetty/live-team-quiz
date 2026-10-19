@@ -6,6 +6,9 @@
   let latest = null;
   let isHost = false;
   let audioCtx = null;
+  let soundMuted = localStorage.getItem('liveQuizSoundMuted') === '1';
+  let lastSoundPhase = null;
+  let lastWarningSecond = null;
   let toastTimer;
   let buzzerCountdownInterval = null;
 
@@ -58,50 +61,58 @@
     button.addEventListener('click', () => view(button.dataset.go));
   });
 
-  // Buzzer sound: host must enable sound with a click.
-  function playBuzz() {
+  // Short synthesized sound effects; no external audio files are required.
+  function playTone(kind = 'buzzer') {
+    if (soundMuted) return;
     try {
-      const AudioContextClass =
-        window.AudioContext || window.webkitAudioContext;
-
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextClass) return;
-
       audioCtx = audioCtx || new AudioContextClass();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
 
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+      const patterns = {
+        buzzer: [{ f: 880, d: 0.12, wave: 'sawtooth' }, { f: 620, d: 0.16, wave: 'sawtooth' }],
+        warning: [{ f: 740, d: 0.09, wave: 'sine' }],
+        reveal: [{ f: 523, d: 0.12, wave: 'triangle' }, { f: 659, d: 0.12, wave: 'triangle' }, { f: 784, d: 0.22, wave: 'triangle' }],
+        phase: [{ f: 660, d: 0.08, wave: 'sine' }]
+      };
+      let offset = 0;
+      for (const note of (patterns[kind] || patterns.buzzer)) {
+        const start = audioCtx.currentTime + offset;
+        const oscillator = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        oscillator.type = note.wave;
+        oscillator.frequency.setValueAtTime(note.f, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.12, start + 0.012);
+        gain.gain.setValueAtTime(0.09, start + note.d * 0.55);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + note.d);
+        oscillator.connect(gain);
+        gain.connect(audioCtx.destination);
+        oscillator.start(start);
+        oscillator.stop(start + note.d + 0.01);
+        offset += note.d + 0.035;
       }
-
-      const time = audioCtx.currentTime;
-      const oscillator = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-
-      oscillator.type = 'sawtooth';
-      oscillator.frequency.setValueAtTime(880, time);
-      oscillator.frequency.exponentialRampToValueAtTime(
-        440,
-        time + 0.23
-      );
-
-      gain.gain.setValueAtTime(0.0001, time);
-      gain.gain.exponentialRampToValueAtTime(0.22, time + 0.015);
-      gain.gain.setValueAtTime(0.17, time + 0.16);
-      gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.4);
-
-      oscillator.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      oscillator.start(time);
-      oscillator.stop(time + 0.41);
     } catch (error) {
-      console.warn('Could not play buzzer sound:', error);
+      console.warn('Could not play quiz sound:', error);
     }
   }
 
+  function updateSoundButton() {
+    const button = $('enableSound');
+    if (!button) return;
+    button.textContent = soundMuted ? '🔇 Sound muted' : '🔊 Mute sound';
+    button.setAttribute('aria-pressed', String(soundMuted));
+  }
+
   $('enableSound').addEventListener('click', () => {
-    playBuzz();
-    toast('Sound enabled in this browser.');
+    soundMuted = !soundMuted;
+    localStorage.setItem('liveQuizSoundMuted', soundMuted ? '1' : '0');
+    updateSoundButton();
+    if (!soundMuted) playTone('reveal');
+    toast(soundMuted ? 'Sound effects muted on this device.' : 'Sound effects enabled on this device.');
   });
+  updateSoundButton();
 
   // Host logout.
   $('hostLogout').addEventListener('click', () => {
@@ -164,8 +175,8 @@
   // Notify the host whenever a team buzzes.
   socket.on('buzz:accepted', data => {
     if (isHost) {
-      playBuzz();
-      toast(`🔊 ${data.teamName} buzzed — #${data.order}`);
+      playTone('buzzer');
+      toast(`${soundMuted ? '' : '🔊 '}${data.teamName} buzzed — #${data.order}`);
     } else if (data.teamId === teamId) {
       $('buzzerMessage').textContent =
         `Buzz accepted! Your order is #${data.order}. Wait for the host.`;
@@ -350,6 +361,17 @@
       const remaining = data.roundDeadline ? Math.max(0, Math.ceil((data.roundDeadline - Date.now()) / 1000)) : 0;
       const value = data.roundDeadline ? `${phaseLabels[data.roundPhase] || 'Round'}: ${remaining}s` : (phaseLabels[data.roundPhase] || 'Waiting');
       ['buzzerTimer','teamTimer','projectorTimer'].forEach(id => { if ($(id)) $(id).textContent = value; });
+      if (data.roundPhase !== lastSoundPhase) {
+        lastSoundPhase = data.roundPhase;
+        lastWarningSecond = null;
+        if (['buzzer','answering','awaiting-reveal','revealed'].includes(data.roundPhase)) {
+          playTone(data.roundPhase === 'revealed' ? 'reveal' : 'phase');
+        }
+      }
+      if (data.roundDeadline && remaining > 0 && remaining <= 3 && remaining !== lastWarningSecond) {
+        lastWarningSecond = remaining;
+        playTone('warning');
+      }
     };
     updateRoundCountdown();
     if (data.roundDeadline) buzzerCountdownInterval = setInterval(updateRoundCountdown, 250);
