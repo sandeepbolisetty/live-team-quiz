@@ -531,6 +531,42 @@ body,main,.view{color:#17243d!important}
 [hidden]{display:none!important}
 </style>
 
+
+<style id="nav-qr-contrast-fix">
+/* Contrast fix for navigation and home QR panel */
+nav button, nav button:not(.active){
+  color:#ffffff!important;
+  background:rgba(255,255,255,.17)!important;
+  border:1px solid rgba(255,255,255,.65)!important;
+  text-shadow:0 1px 2px rgba(20,25,70,.3)!important;
+  font-weight:850!important;
+}
+nav button.active,nav button:hover{
+  background:#ffffff!important;
+  color:#2447a2!important;
+  border-color:#ffffff!important;
+  text-shadow:none!important;
+}
+nav button:focus-visible{outline:3px solid #ffe16b!important;outline-offset:2px!important}
+.qr-panel,.qr-card,.home-qr,.qr-box,#qrPanel,#joinQr{
+  color:#172b4d!important
+}
+.qr-panel :is(h1,h2,h3,h4,p,span,b,strong,label,small),
+.qr-card :is(h1,h2,h3,h4,p,span,b,strong,label,small),
+.home-qr :is(h1,h2,h3,h4,p,span,b,strong,label,small),
+.qr-box :is(h1,h2,h3,h4,p,span,b,strong,label,small),
+#qrPanel :is(h1,h2,h3,h4,p,span,b,strong,label,small),
+#joinQr :is(h1,h2,h3,h4,p,span,b,strong,label,small){
+  color:#263b60!important
+}
+:is(.qr-panel,.qr-card,.home-qr,.qr-box,#qrPanel,#joinQr) :is(.eyebrow,.qr-label,.scan-label){
+  color:#243d72!important;font-weight:900!important;letter-spacing:.12em!important
+}
+:is(.qr-panel,.qr-card,.home-qr,.qr-box,#qrPanel,#joinQr) :is(code,pre,.qr-url){
+  color:#087f80!important;background:#fff5f8!important;font-weight:800!important
+}
+</style>
+
 </head>
 <body>
 <header class="vfstr-masthead">
