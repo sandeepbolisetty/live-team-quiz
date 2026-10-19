@@ -311,6 +311,56 @@ tr:hover td{background:rgba(54,224,194,.045)}
  .podium-place small{font-size:.65rem}
 }
 
+
+/* Immersive live quiz stage / classroom projector mode */
+#projector.view.active{width:100%;max-width:none;padding:clamp(10px,2vw,24px)}
+.live-stage{position:relative;overflow:hidden;isolation:isolate;padding:clamp(18px,3vw,38px);border:1px solid rgba(91,221,224,.26);border-radius:24px;background:radial-gradient(ellipse at 5% 0%,rgba(27,143,156,.18),transparent 36%),radial-gradient(ellipse at 100% 15%,rgba(73,105,230,.2),transparent 35%),linear-gradient(145deg,rgba(4,15,35,.97),rgba(7,12,29,.96));box-shadow:0 30px 90px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.05);min-height:calc(100vh - 210px)}
+.live-stage:before{content:"";position:absolute;inset:0;z-index:-1;opacity:.2;background-image:linear-gradient(rgba(129,178,228,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(129,178,228,.09) 1px,transparent 1px);background-size:38px 38px;mask-image:linear-gradient(90deg,#000,transparent 85%);pointer-events:none}
+.stage-topline,.stage-status-row,.stage-section-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.stage-brand{display:flex;align-items:center;gap:10px;color:#dbe8ff;font-size:.76rem;font-weight:900;letter-spacing:.14em}
+.stage-divider{color:#486382}
+.stage-room{font-size:.75rem;font-weight:800;letter-spacing:.1em;color:#9bb5d8;border:1px solid rgba(150,190,235,.22);padding:9px 13px;border-radius:999px;background:rgba(4,13,31,.6)}
+.stage-status-row{margin:clamp(24px,4vw,44px) 0 20px}
+.stage-phase{display:inline-flex;align-items:center;gap:9px;padding:9px 13px;border-radius:999px;background:rgba(54,224,194,.1);border:1px solid rgba(54,224,194,.28);font-size:.75rem;letter-spacing:.1em;font-weight:900;color:#8af5e4}
+.stage-status-dot{width:8px;height:8px;background:#36e0c2;border-radius:50%;box-shadow:0 0 12px #36e0c2}
+.stage-phase.phase-buzzer{background:rgba(255,87,120,.12);border-color:rgba(255,100,130,.5);color:#ff9db1;animation:stagePulse 1s ease-in-out infinite alternate}
+.stage-phase.phase-buzzer .stage-status-dot{background:#ff597d;box-shadow:0 0 14px #ff597d}
+.stage-question-count{color:#91a9cb;font-size:.78rem;font-weight:800;letter-spacing:.12em}
+.stage-main-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,285px);gap:clamp(18px,3vw,38px);align-items:stretch}
+.stage-question-panel{min-width:0;padding:clamp(20px,3.5vw,42px);border-radius:20px;border:1px solid rgba(139,178,226,.2);background:linear-gradient(145deg,rgba(12,31,61,.82),rgba(7,18,39,.8));box-shadow:inset 0 1px rgba(255,255,255,.04)}
+.stage-overline{font-size:.72rem;font-weight:900;letter-spacing:.19em;color:#64e8d6;margin-bottom:22px}
+.stage-question-box{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important}
+.stage-question-box .question-title{font-size:clamp(1.65rem,3.2vw,3.2rem)!important;line-height:1.22!important;letter-spacing:-.035em!important;color:#f5f8ff!important;margin:20px 0 28px!important}
+.stage-question-box .options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.stage-question-box .option{display:flex;align-items:center;gap:12px;min-height:62px;padding:15px!important;font-size:clamp(.9rem,1.4vw,1.12rem)!important;line-height:1.4;border-radius:13px!important}
+.stage-question-box .option>b{flex:0 0 34px;display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:rgba(54,224,194,.12);color:#65ebd9;font-size:1rem}
+.stage-side-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:25px 18px;border-radius:20px;border:1px solid rgba(79,140,255,.24);background:linear-gradient(180deg,rgba(13,31,62,.9),rgba(6,16,36,.92));text-align:center}
+.stage-timer-label{color:#9bb4d7;font-size:.69rem;font-weight:900;letter-spacing:.15em}
+.stage-timer-ring{--timer-progress:0deg;width:clamp(150px,17vw,218px);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;margin:22px auto 12px;background:conic-gradient(#36e0c2 var(--timer-progress),rgba(125,163,210,.13) var(--timer-progress));box-shadow:0 0 35px rgba(54,224,194,.09);position:relative}
+.stage-timer-ring:before{content:"";position:absolute;inset:8px;border-radius:50%;background:linear-gradient(145deg,#0d2244,#071328);border:1px solid rgba(150,190,235,.16)}
+.stage-timer-inner{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px}
+.stage-timer-inner strong{font-size:clamp(2.6rem,5vw,4.5rem);font-variant-numeric:tabular-nums;letter-spacing:-.07em;line-height:1;color:#f6f9ff}
+.stage-timer-inner span{font-size:.65rem;letter-spacing:.2em;font-weight:900;color:#8fa9cb}
+.stage-timer-text{font-size:.82rem!important;color:#8beede!important;background:transparent!important}
+.stage-progress-track{width:100%;height:5px;background:rgba(130,164,211,.15);border-radius:999px;overflow:hidden;margin:16px 0 12px}
+.stage-progress-fill{height:100%;width:0;background:linear-gradient(90deg,#36e0c2,#4f8cff);border-radius:inherit;transition:width .3s ease}
+.stage-side-note{font-size:.82rem;line-height:1.55;color:#93a9c8;max-width:230px}
+.stage-bottom-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(220px,.8fr);gap:16px;margin-top:18px}
+.stage-buzz-panel,.stage-tip-panel{border:1px solid rgba(139,178,226,.17);border-radius:16px;padding:18px 20px;background:rgba(5,16,35,.72)}
+.stage-section-title{color:#dbe9ff;font-size:.78rem;font-weight:900;letter-spacing:.12em}
+.stage-live-tag{font-size:.62rem;color:#62e8d5;border:1px solid rgba(54,224,194,.25);background:rgba(54,224,194,.08);border-radius:999px;padding:5px 8px}
+.stage-buzzes ol{list-style:none;padding:0;margin:12px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.stage-buzzes li{margin:0;padding:12px;border-radius:10px;background:rgba(14,33,62,.86);border:1px solid rgba(139,178,226,.14);color:#dce9ff;font-size:.9rem}
+.stage-buzzes .empty{padding:13px 0;color:#8da4c6}
+.stage-tip-panel{display:flex;align-items:center;gap:14px}
+.stage-tip-icon{display:grid;place-items:center;flex:0 0 42px;height:42px;border-radius:13px;background:rgba(79,140,255,.12);color:#8fb2ff;font-size:1.4rem}
+.stage-tip-panel b{color:#eaf2ff;font-size:.9rem}
+.stage-tip-panel p{margin:6px 0 0;color:#91a8c9;font-size:.8rem;line-height:1.5}
+@keyframes stagePulse{to{box-shadow:0 0 24px rgba(255,87,120,.22);filter:brightness(1.18)}}
+@media(max-width:850px){.stage-main-grid{grid-template-columns:minmax(0,1fr)}.stage-side-panel{display:grid;grid-template-columns:1fr 100px;column-gap:18px;text-align:left;justify-items:start;padding:18px}.stage-timer-label,.stage-timer-text,.stage-progress-track,.stage-side-note{grid-column:1}.stage-timer-ring{grid-column:2;grid-row:1/6;width:90px;margin:0;align-self:center}.stage-timer-inner strong{font-size:1.8rem}.stage-timer-inner span{font-size:.48rem}.stage-bottom-grid{grid-template-columns:1fr}}
+@media(max-width:600px){#projector.view.active{padding:6px}.live-stage{padding:14px;border-radius:16px}.stage-brand{font-size:.62rem;letter-spacing:.08em}.stage-room{font-size:.63rem;padding:7px 9px}.stage-question-panel{padding:17px}.stage-question-box .options{grid-template-columns:1fr}.stage-question-box .question-title{font-size:1.55rem!important}.stage-status-row{margin:22px 0 14px}.stage-buzzes ol{grid-template-columns:1fr}.stage-tip-panel{padding:14px}}
+@media(prefers-reduced-motion:reduce){.stage-phase.phase-buzzer{animation:none}}
+
 </style>
 </head>
 <body>
@@ -379,7 +429,17 @@ tr:hover td{background:rgba(54,224,194,.045)}
   <div class="card"><h2>Buzz order</h2><div id="buzzerOrder"></div></div>
  </div>
 </section>
-<section id="projector" class="view"><div class="card projector"><div class="row spread"><h2>Projector view</h2><span id="projectorRoom" class="pill"></span></div><div id="projectorTimer" class="round-timer">Waiting</div><div id="projectorQuestion" class="question-box"></div><h2>Accepted buzzes</h2><div id="projectorBuzzes"></div></div></section>
+<section id="projector" class="view">
+ <div class="live-stage">
+  <div class="stage-topline"><div class="stage-brand"><span class="live-dot"></span> VIGNAN LIVE QUIZ <span class="stage-divider">/</span> PROJECTOR MODE</div><span id="projectorRoom" class="stage-room">ROOM: —</span></div>
+  <div class="stage-status-row"><span id="stagePhaseBadge" class="stage-phase"><span class="stage-status-dot"></span> WAITING FOR HOST</span><span id="stageQuestionCount" class="stage-question-count">QUESTION —</span></div>
+  <div class="stage-main-grid">
+   <div class="stage-question-panel"><div class="stage-overline">CURRENT CHALLENGE</div><div id="projectorQuestion" class="question-box stage-question-box"></div></div>
+   <aside class="stage-side-panel"><div class="stage-timer-label">ROUND COUNTDOWN</div><div id="stageTimerRing" class="stage-timer-ring"><div class="stage-timer-inner"><strong id="stageSeconds">—</strong><span>SECONDS</span></div></div><div id="projectorTimer" class="round-timer stage-timer-text">Waiting</div><div class="stage-progress-track"><div id="stageProgress" class="stage-progress-fill"></div></div><div class="stage-side-note" id="stageHint">The host will start the next round shortly.</div></aside>
+  </div>
+  <div class="stage-bottom-grid"><div class="stage-buzz-panel"><div class="stage-section-title"><span>⚡ BUZZER RACE</span><span class="stage-live-tag">LIVE FEED</span></div><div id="projectorBuzzes" class="stage-buzzes"></div></div><div class="stage-tip-panel"><span class="stage-tip-icon">✦</span><div><b>Think fast. Work together.</b><p>Watch the timer and wait for the host to reveal the answer.</p></div></div></div>
+ </div>
+</section>
 <section id="leaderboard" class="view"><div class="card leaderboard-card"><div class="row spread"><div><span class="eyebrow">THE RACE TO THE TOP</span><h2>Live leaderboard</h2><p class="muted">Every point counts. Rankings update as scores change.</p></div><button id="resetScores" class="danger" hidden>Reset scores</button></div><div id="leaderboardPodium" class="leaderboard-podium"></div><div id="leaderboardTable"></div></div></section>
 <footer class="site-credit"><div class="maker-credit"><strong>Designed &amp; developed by <a href="https://www.linkedin.com/in/sandeep-bolisetty-b7aa4a30b/" target="_blank" rel="noopener noreferrer">Sandeep Bolisetty</a></strong><span>Robotics &amp; Automation</span></div><div class="president-credit"><strong>SPARC President: <a href="https://www.linkedin.com/in/pravyanth-marreddy-3aa92a324" target="_blank" rel="noopener noreferrer">Pravyanth Marreddy</a></strong><span>SPARC — Student Robotics &amp; Automation Club</span></div><a href="https://www.linkedin.com/in/sandeep-bolisetty-b7aa4a30b/" target="_blank" rel="noopener noreferrer">Connect with the web developer on LinkedIn ↗</a><p>Online version: use HTTPS, keep the host PIN private, and test the quiz on multiple networks before the event.</p></footer>
 </main>
