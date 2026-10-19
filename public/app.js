@@ -976,7 +976,18 @@
   }
   updateConnectionStatus(socket.connected);
   socket.on('connect', () => updateConnectionStatus(true));
-  socket.on('disconnect', () => updateConnectionStatus(false));
+  socket.on('disconnect', () => {
+    updateConnectionStatus(false);
+    if (isHost) {
+      isHost = false;
+      $('hostLogin').hidden = false;
+      $('hostPanel').hidden = true;
+      $('resetScores').hidden = true;
+      $('exportResults').hidden = true;
+      view('host');
+      toast('Host connection lost. After reconnecting, sign in again to resume host controls.');
+    }
+  });
   socket.on('connect_error', () => updateConnectionStatus(false));
 
   renderMemberRows(false);
