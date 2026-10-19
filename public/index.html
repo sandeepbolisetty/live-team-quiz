@@ -427,6 +427,40 @@ th{background:linear-gradient(100deg,#eaf1ff,#f7eaff)!important;color:#344b9a!im
 @media(prefers-reduced-motion:reduce){body:before,body:after{animation:none!important}}
 </style>
 
+
+<style>
+/* Strong, high-contrast university title on the light theme */
+.vfstr-brand h1{
+  color:#102e70!important;
+  background:linear-gradient(100deg,#102e70 0%,#284fc0 48%,#8b2bbd 78%,#bd245e 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  text-shadow:none!important;
+  font-weight:950!important;
+  letter-spacing:-.025em;
+  filter:drop-shadow(0 1px 0 rgba(255,255,255,.9));
+}
+.vfstr-brand .eyebrow{
+  color:#b42358!important;
+  font-weight:900!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.8);
+}
+.deemed-label{
+  color:#263c67!important;
+  font-weight:800!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.9);
+}
+.vfstr-brand .subtitle{
+  color:#35496e!important;
+  font-weight:750!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.85);
+}
+@media(max-width:460px){
+ .vfstr-brand h1{-webkit-text-fill-color:transparent!important}
+}
+</style>
+
 </head>
 <body>
 <header class="vfstr-masthead">
