@@ -483,8 +483,23 @@
       });
     }
 
-    $('projectorQuestion').innerHTML =
-      renderQuestion(question, data.revealed, false);
+    $('projectorQuestion').innerHTML = renderQuestion(question, data.revealed, false);
+    const stageLabels = { hidden: 'WAITING FOR HOST', reading: 'READ THE QUESTION', buzzer: 'BUZZER IS LIVE', answering: 'SUBMIT YOUR ANSWER', 'awaiting-reveal': 'ANSWERS LOCKED', revealed: 'ANSWER REVEALED' };
+    const stageDurations = { reading: 20, buzzer: 10, answering: 15 };
+    const stageLabel = stageLabels[data.roundPhase] || 'WAITING FOR HOST';
+    if ($('stagePhaseBadge')) {
+      $('stagePhaseBadge').innerHTML = '<span class="stage-status-dot"></span> ' + stageLabel;
+      $('stagePhaseBadge').classList.toggle('phase-buzzer', data.roundPhase === 'buzzer');
+    }
+    if ($('stageQuestionCount')) $('stageQuestionCount').textContent = question ? 'QUESTION ' + (Number(data.currentIndex || 0) + 1) + ' / ' + (data.questionCount ?? questions.length) : 'QUESTION —';
+    if ($('stageHint')) $('stageHint').textContent = data.roundPhase === 'buzzer' ? 'Buzz now! The fastest teams get to answer.' : data.roundPhase === 'answering' ? 'Selected teams: submit your answer before time runs out.' : data.roundPhase === 'awaiting-reveal' ? 'The host will reveal the correct answer shortly.' : data.roundPhase === 'revealed' ? 'Round complete. Check the correct answer on screen.' : data.roundPhase === 'reading' ? 'Read carefully. Get ready to buzz.' : 'The host will start the next round shortly.';
+    const stageRemaining = data.roundDeadline ? Math.max(0, Math.ceil((data.roundDeadline - Date.now()) / 1000)) : 0;
+    const stageTotal = stageDurations[data.roundPhase] || 0;
+    if ($('stageSeconds')) $('stageSeconds').textContent = data.roundDeadline ? stageRemaining : '—';
+    if ($('stageTimerRing')) $('stageTimerRing').style.setProperty('--timer-progress', (stageTotal ? Math.max(0, Math.min(1, stageRemaining / stageTotal)) * 360 : 0) + 'deg');
+    if ($('stageProgress')) $('stageProgress').style.width = (stageTotal ? Math.max(0, Math.min(1, 1 - stageRemaining / stageTotal)) * 100 : data.revealed ? 100 : 0) + '%';
+    if ($('projector').classList) $('projector').classList.toggle('buzzer-live', data.roundPhase === 'buzzer');
+
 
     $('projectorBuzzes').innerHTML = renderBuzzes(buzzes);
 
