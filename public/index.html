@@ -630,6 +630,67 @@ main nav button:hover{
 .join-qr-panel>#copyJoinLink:hover{background:#ffffff!important;color:#17316f!important}
 </style>
 
+
+<style id="mobile-layout-fix">
+/* Mobile-first layout refinements for phones */
+@media (max-width:600px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden!important}
+  body{font-size:15px!important}
+  .vfstr-masthead{
+    display:flex!important;flex-wrap:wrap!important;align-items:center!important;
+    justify-content:center!important;gap:12px!important;padding:18px 14px!important
+  }
+  .vfstr-brand{order:0!important;flex:1 0 100%!important;width:100%!important;min-width:0!important}
+  .vfstr-brand h1{font-size:clamp(22px,6vw,30px)!important;line-height:1.18!important;letter-spacing:-.02em!important;overflow-wrap:anywhere!important}
+  .vfstr-brand .deemed-label{font-size:13px!important;margin-top:7px!important}
+  .vfstr-brand .subtitle{font-size:12px!important;letter-spacing:.04em!important}
+  .vfstr-brand .quiz-label{font-size:11px!important;padding:9px 13px!important}
+  .vfstr-logo{width:104px!important;height:104px!important;max-width:28vw!important;object-fit:contain!important}
+  .vfstr-room{padding:12px 14px!important;text-align:center!important;font-size:14px!important;overflow-wrap:anywhere!important}
+  nav{
+    display:flex!important;flex-wrap:wrap!important;justify-content:center!important;
+    gap:7px!important;padding:10px 8px!important;position:relative!important
+  }
+  body nav button,body nav button:not(.active){
+    flex:0 1 auto!important;min-width:0!important;max-width:48%!important;
+    padding:11px 12px!important;font-size:13px!important;line-height:1.25!important;
+    white-space:normal!important;border-radius:13px!important
+  }
+  main{width:auto!important;max-width:100%!important;margin:0 auto!important;padding:14px!important}
+  .view{width:100%!important;max-width:100%!important}
+  .card{padding:18px!important;border-radius:18px!important;min-width:0!important}
+  .premium-hero{
+    display:flex!important;flex-direction:column!important;gap:22px!important;
+    padding:20px!important;margin:0!important
+  }
+  .hero-copy{width:100%!important;min-width:0!important}
+  .hero-copy h2{font-size:clamp(29px,8vw,40px)!important;line-height:1.18!important;letter-spacing:-.035em!important;overflow-wrap:anywhere!important}
+  .hero-copy p{font-size:16px!important;line-height:1.65!important}
+  .hero-actions{display:grid!important;grid-template-columns:1fr!important;gap:10px!important;width:100%!important}
+  .hero-actions button{width:100%!important;min-height:54px!important;font-size:16px!important}
+  .hero-trust{display:grid!important;grid-template-columns:1fr!important;gap:9px!important}
+  .join-qr-panel{
+    display:flex!important;flex-direction:column!important;align-items:center!important;
+    width:100%!important;max-width:100%!important;box-sizing:border-box!important;
+    padding:18px!important;gap:12px!important;margin:0!important
+  }
+  .join-qr-panel .qr-frame{width:min(220px,78vw)!important;height:min(220px,78vw)!important;flex:0 0 auto!important;margin:0 auto!important}
+  .join-qr-panel .qr-frame img{width:100%!important;height:100%!important;object-fit:contain!important}
+  .join-qr-panel>b,.join-qr-panel>span,.join-qr-panel>code,#joinUrl,.join-qr-panel>#copyJoinLink{
+    width:100%!important;max-width:100%!important;box-sizing:border-box!important;text-align:center!important
+  }
+  .join-qr-panel>code,#joinUrl{font-size:12px!important;line-height:1.5!important;padding:10px!important;white-space:normal!important;overflow-wrap:anywhere!important}
+  .join-qr-panel>#copyJoinLink{min-height:48px!important}
+  .home-stats,.grid2,.stats,.stage-main-grid,.stage-bottom-grid{
+    grid-template-columns:1fr!important;grid-template-rows:auto!important
+  }
+  .home-stats{gap:10px!important}
+  .row,.row.spread{flex-wrap:wrap!important;gap:10px!important}
+  .row button{max-width:100%!important}
+  .site-credit{padding:20px 14px!important;overflow-wrap:anywhere!important}
+}
+</style>
+
 </head>
 <body>
 <header class="vfstr-masthead">
