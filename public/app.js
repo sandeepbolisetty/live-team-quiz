@@ -126,6 +126,7 @@
     $('hostLogin').hidden = false;
     $('hostPanel').hidden = true;
     $('resetScores').hidden = true;
+    $('exportResults').hidden = true;
     view('home');
     toast('You have logged out of the host dashboard.');
   });
@@ -145,6 +146,7 @@
     $('hostLogin').hidden = true;
     $('hostPanel').hidden = false;
     $('resetScores').hidden = false;
+    $('exportResults').hidden = false;
 
     latest = data;
     render(data);
@@ -611,6 +613,19 @@
         : '<div class="podium-empty">The podium is waiting for its first competitors.</div>';
     }
 
+    const winnerBanner = $('winnerAnnouncement');
+    if (winnerBanner) {
+      if (sorted.length) {
+        const leaders = sorted.filter(team => Number(team.score || 0) === Number(sorted[0].score || 0));
+        winnerBanner.hidden = false;
+        winnerBanner.textContent = leaders.length > 1
+          ? '🏆 Current tie for the lead: ' + leaders.map(team => team.name).join(' · ')
+          : '🏆 Current leader: ' + sorted[0].name + ' — ' + Number(sorted[0].score || 0) + ' points';
+      } else {
+        winnerBanner.hidden = true;
+      }
+    }
+
     $('leaderboardTable').innerHTML = sorted.length
       ? table(`
         <thead>
@@ -688,6 +703,28 @@
 
   $('exportTeams').addEventListener('click', () => {
     socket.emit('host:teams:export');
+  });
+
+  $('exportResults').addEventListener('click', () => {
+    if (!isHost || !latest) return toast('Host login required.');
+    const ranked = [...(latest.teams || [])].sort((a, b) =>
+      Number(b.score || 0) - Number(a.score || 0) || String(a.name).localeCompare(String(b.name))
+    );
+    const rows = [
+      ['Rank', 'Team', 'Members', 'Score', 'Result'],
+      ...ranked.map((team, index) => [
+        index + 1, team.name, team.memberCount, team.score,
+        index === 0 && Number(team.score || 0) > 0 ? 'Current leader' : ''
+      ])
+    ];
+    rows.push([]);
+    rows.push(['Recent scoring history']);
+    rows.push(['Team', 'Question ID', 'Points awarded', 'Timestamp']);
+    (latest.history || []).forEach(item => {
+      rows.push([item.team_name, item.question_id, item.points, item.created_at]);
+    });
+    downloadCSV('live-team-quiz-results.csv', rows);
+    toast('Results report downloaded.');
   });
 
   function clearQuestionForm() {
