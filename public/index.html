@@ -65,6 +65,58 @@ input:focus,select:focus,textarea:focus{outline:2px solid #477eae}
 .deemed-label{font-size:.7rem}.vfstr-brand .subtitle{font-size:.76rem}.vfstr-brand .quiz-label{font-size:.62rem;padding:7px 10px}.vfstr-room{padding:8px 12px}.answer-picks{grid-template-columns:1fr}}
 @media(max-width:460px){.vfstr-masthead{grid-template-columns:1fr 1fr;gap:10px}.vfstr-logo{max-width:130px;height:92px}.vfstr-brand{grid-column:1/-1;grid-row:1}.vfstr-logo:first-child{grid-column:1;grid-row:2}.vfstr-logo:last-child{grid-column:2;grid-row:2}.vfstr-brand .eyebrow{font-size:.63rem}.vfstr-brand h1{font-size:1.4rem}
 .deemed-label{font-size:.72rem}.vfstr-brand .subtitle{font-size:.8rem}}
+
+/* ANIMATED LIVE WALLPAPER BACKGROUND */
+html{background:#080d2a;min-height:100%}
+body{
+ position:relative;isolation:isolate;overflow-x:hidden;
+ background:linear-gradient(120deg,#07122e,#10134a,#25104b,#082e50,#170d3a);
+ background-size:300% 300%;
+ animation:wallpaperFlow 22s ease-in-out infinite;
+}
+body:before{
+ content:"";position:fixed;inset:-18%;z-index:-1;pointer-events:none;
+ background:
+  radial-gradient(ellipse at 15% 28%,#00d9ff55 0,transparent 27%),
+  radial-gradient(ellipse at 78% 24%,#e32bce4a 0,transparent 29%),
+  radial-gradient(ellipse at 55% 82%,#5646ff55 0,transparent 32%),
+  radial-gradient(ellipse at 92% 75%,#ff4b8b35 0,transparent 23%);
+ background-size:150% 150%;
+ filter:blur(20px);
+ animation:auroraDrift 18s ease-in-out infinite alternate;
+}
+body:after{
+ content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.2;
+ background-image:radial-gradient(circle,#bceeff 1px,transparent 1.7px);
+ background-size:42px 42px;
+ mask-image:linear-gradient(to bottom,transparent,#000 25%,#000 78%,transparent);
+ animation:starfieldDrift 45s linear infinite;
+}
+@keyframes wallpaperFlow{
+ 0%,100%{background-position:0% 50%}
+ 50%{background-position:100% 50%}
+}
+@keyframes auroraDrift{
+ 0%{transform:translate3d(-2%,1%,0) scale(1);background-position:0% 30%}
+ 50%{transform:translate3d(2%,-1%,0) scale(1.08);background-position:100% 70%}
+ 100%{transform:translate3d(-1%,2%,0) scale(1.02);background-position:20% 100%}
+}
+@keyframes starfieldDrift{from{background-position:0 0}to{background-position:84px 126px}}
+/* Keep the animated wallpaper behind readable page content */
+.vfstr-masthead{background:linear-gradient(115deg,#0a1745ee 0%,#101b54ee 48%,#3b1248ee 100%);border-image:linear-gradient(90deg,#00d9ff,#7550ff,#f52db5,#ffb84d) 1}
+.vfstr-masthead:before{background:radial-gradient(circle at 10% 50%,#00d9ff35,transparent 24%),radial-gradient(circle at 90% 50%,#ff40d535,transparent 24%)}
+.vfstr-brand h1{color:#f2f7ff;text-shadow:0 0 24px #42aaff40}
+.deemed-label,.vfstr-brand .subtitle{color:#c4d5f7}
+.vfstr-room{background:#0a1745e8;color:#d7eaff;border-bottom-color:#30477f}
+nav{background:linear-gradient(100deg,#071735f2,#21175ff2 55%,#4b1454f2);border-bottom-color:#20dcff}
+.site-credit{background:linear-gradient(110deg,#081633f2,#111849f2 60%,#32113ff2);color:#edf5ff;border-top-color:#1bdcff}
+.site-credit span{color:#bdcbed}
+.site-credit .maker-credit a,.site-credit .president-credit a{color:#45e4ff}
+.site-credit a{color:#e8f8ff;border-color:#385183;background:#111f40}
+@media(prefers-reduced-motion:reduce){
+ body,body:before,body:after{animation:none!important}
+}
+
 </style>
 </head>
 <body>
