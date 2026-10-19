@@ -905,6 +905,21 @@
     });
   }
 
+
+  const connectionStatus = document.getElementById('connectionStatus');
+  function updateConnectionStatus(online) {
+    if (!connectionStatus) return;
+    connectionStatus.classList.toggle('is-online', !!online);
+    connectionStatus.classList.toggle('is-offline', !online);
+    const label = connectionStatus.querySelector('.connection-label');
+    if (label) label.textContent = online ? 'LIVE CONNECTION' : 'RECONNECTING…';
+    connectionStatus.setAttribute('aria-label', online ? 'Connected to the live quiz server' : 'Disconnected from the live quiz server');
+  }
+  updateConnectionStatus(socket.connected);
+  socket.on('connect', () => updateConnectionStatus(true));
+  socket.on('disconnect', () => updateConnectionStatus(false));
+  socket.on('connect_error', () => updateConnectionStatus(false));
+
   renderMemberRows(false);
       });
 
