@@ -255,6 +255,62 @@ tr:hover td{background:rgba(54,224,194,.045)}
  *,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
 
+
+/* Competition home, QR joining and leaderboard podium */
+.premium-hero{display:grid!important;grid-template-columns:minmax(0,1fr) 230px;gap:clamp(20px,4vw,52px);align-items:center;padding:clamp(24px,4vw,48px)!important;overflow:hidden;position:relative}
+.premium-hero:after{content:"";position:absolute;left:-80px;bottom:-150px;width:320px;height:320px;border-radius:50%;border:1px solid rgba(54,224,194,.12);box-shadow:0 0 0 28px rgba(54,224,194,.025),0 0 0 58px rgba(79,140,255,.025);pointer-events:none}
+.hero-copy,.join-qr-panel{position:relative;z-index:1}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:.72rem;font-weight:850;letter-spacing:.15em;color:#8ba7ca;text-transform:uppercase}
+.premium-hero h2{font-size:clamp(2rem,5vw,4.2rem);line-height:1.04;letter-spacing:-.055em;margin:16px 0;color:#f6f9ff}
+.premium-hero h2 span{color:#36e0c2;text-shadow:0 0 26px rgba(54,224,194,.18)}
+.premium-hero .hero-copy>p{max-width:620px;font-size:clamp(.98rem,1.4vw,1.12rem);line-height:1.75;color:#b5c6e0}
+.hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin:24px 0 18px}
+.hero-actions button{padding:12px 16px!important}
+.hero-trust{display:flex;flex-wrap:wrap;gap:12px 20px;color:#a9bdd8;font-size:.8rem}
+.hero-trust i{font-style:normal;color:#36e0c2;margin-right:5px}
+.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#36e0c2;box-shadow:0 0 0 4px rgba(54,224,194,.1),0 0 12px rgba(54,224,194,.65)}
+.join-qr-panel{display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;padding:18px 14px;border:1px solid rgba(133,180,231,.22);border-radius:18px;background:linear-gradient(145deg,rgba(13,34,64,.88),rgba(7,17,39,.92));box-shadow:0 18px 36px rgba(0,0,0,.2)}
+.qr-frame{width:154px;height:154px;padding:8px;background:white;border-radius:12px;box-shadow:0 0 0 1px rgba(255,255,255,.5),0 0 24px rgba(54,224,194,.16)}
+.qr-frame img{width:100%;height:100%;display:block;object-fit:contain}
+.join-qr-panel>b{font-size:.75rem;letter-spacing:.16em;color:#dffbf6}
+.join-qr-panel>span{font-size:.78rem;color:#9eb3d1}
+.join-qr-panel code{font-size:.68rem;max-width:100%;overflow-wrap:anywhere;color:#72e8d8}
+.join-qr-panel button{font-size:.78rem;padding:8px 12px!important;background:rgba(54,224,194,.09)!important;border:1px solid rgba(54,224,194,.3)!important;color:#adfff0!important}
+.home-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:16px 0}
+.mini-stat{display:grid;grid-template-columns:38px 1fr;align-items:center;column-gap:10px;padding:17px;border:1px solid rgba(157,190,239,.17);border-radius:15px;background:linear-gradient(145deg,rgba(8,21,46,.88),rgba(8,16,36,.78));box-shadow:0 12px 28px rgba(0,0,0,.12)}
+.stat-icon{grid-row:1/4;display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:rgba(54,224,194,.1);color:#64f1db;font-size:1.25rem}
+.stat-label{font-size:.66rem;letter-spacing:.1em;color:#9fb5d5;font-weight:800}
+.mini-stat strong{font-size:1.6rem;line-height:1.25;color:#f6f9ff;overflow-wrap:anywhere}
+.mini-stat small{font-size:.73rem;color:#93a9c9}
+.section-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+.section-heading h2,.leaderboard-card h2{margin:5px 0 0;color:#f6f9ff}
+.section-heading .pill{white-space:nowrap}
+.leaderboard-card{padding:clamp(18px,3vw,32px)!important}
+.leaderboard-podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:12px;margin:26px 0 28px}
+.podium-place{min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:7px;padding:20px 10px 16px;border:1px solid rgba(157,190,239,.18);border-radius:16px;background:linear-gradient(180deg,rgba(16,36,67,.92),rgba(7,17,37,.9))}
+.podium-place.first{padding-top:29px;border-color:rgba(255,201,107,.55);background:linear-gradient(180deg,rgba(83,61,30,.46),rgba(7,17,37,.94));box-shadow:0 0 30px rgba(255,201,107,.08)}
+.podium-medal{font-size:1.8rem;filter:drop-shadow(0 5px 12px rgba(0,0,0,.3))}
+.podium-place b{max-width:100%;overflow-wrap:anywhere;color:#f5f8ff;font-size:.95rem}
+.podium-place strong{font-size:1.25rem;color:#36e0c2}
+.podium-place small{font-size:.7rem;color:#9fb4d4}
+.podium-place.first strong{color:#ffc96b}
+.podium-empty{grid-column:1/-1;text-align:center;padding:26px 10px;color:#92a9ca;border:1px dashed rgba(157,190,239,.2);border-radius:14px}
+@media(max-width:760px){
+ .premium-hero{grid-template-columns:minmax(0,1fr);padding:22px!important}
+ .premium-hero h2{font-size:clamp(2rem,9vw,3rem)}
+ .join-qr-panel{display:grid;grid-template-columns:100px 1fr;column-gap:14px;text-align:left;justify-items:start}
+ .qr-frame{grid-row:1/5;width:100px;height:100px;padding:5px}
+ .join-qr-panel>b,.join-qr-panel>span,.join-qr-panel code,.join-qr-panel button{grid-column:2}
+ .home-stats{grid-template-columns:1fr;gap:9px}
+ .mini-stat{grid-template-columns:38px 1fr}
+ .section-heading{align-items:flex-start}
+ .leaderboard-podium{gap:7px}
+ .podium-place{padding:14px 5px 12px}
+ .podium-place.first{padding-top:20px}
+ .podium-place b{font-size:.78rem}
+ .podium-place small{font-size:.65rem}
+}
+
 </style>
 </head>
 <body>
@@ -277,8 +333,19 @@ tr:hover td{background:rgba(54,224,194,.045)}
 </nav>
 <main>
 <section id="home" class="view active">
- <div class="card hero"><h2>Join the quiz</h2><p>Teams can join from different Wi-Fi networks or mobile data using this public website link.</p><div class="row"><button class="primary" data-go="register">Register your team</button><button data-go="buzzer">Open team buzzer</button><button data-go="projector">Projector view</button></div></div>
- <div class="card"><h2>Registered teams</h2><div id="homeTeams" class="muted">Loading teams…</div></div>
+ <div class="card hero premium-hero">
+  <div class="hero-copy"><span class="eyebrow"><span class="live-dot"></span> LIVE COMPETITION PLATFORM</span><h2>Think fast. <span>Buzz first.</span> Win together.</h2><p>Welcome to the Vignan Live Team Quiz. Join your team, watch the live round and compete for the top spot.</p>
+   <div class="row hero-actions"><button class="primary" data-go="register">Register your team</button><button data-go="buzzer">Open team buzzer</button><button data-go="projector">Projector view</button></div>
+   <div class="hero-trust"><span><i>✓</i> Real-time scoring</span><span><i>✓</i> Live buzzer rounds</span><span><i>✓</i> Team leaderboard</span></div>
+  </div>
+  <div class="join-qr-panel"><div class="qr-frame"><img id="joinQr" alt="QR code to open the quiz website" loading="lazy"></div><b>SCAN TO JOIN</b><span>Open this quiz on your phone</span><code id="joinUrl"></code><button id="copyJoinLink" type="button">Copy join link</button></div>
+ </div>
+ <div class="home-stats">
+  <div class="mini-stat"><span class="stat-icon">◉</span><span class="stat-label">REGISTERED TEAMS</span><strong id="homeTeamCount">0</strong><small>Ready to compete</small></div>
+  <div class="mini-stat"><span class="stat-icon">▤</span><span class="stat-label">QUESTION BANK</span><strong id="homeQuestionCount">0</strong><small>Quiz questions loaded</small></div>
+  <div class="mini-stat"><span class="stat-icon">◷</span><span class="stat-label">ROUND STATUS</span><strong id="homeRoundStatus">Waiting</strong><small id="homeRoundHint">Host will start the first round</small></div>
+ </div>
+ <div class="card"><div class="section-heading"><div><span class="eyebrow">THE COMPETITION</span><h2>Registered teams</h2></div><span class="pill"><span class="live-dot"></span> Updates live</span></div><div id="homeTeams" class="muted">Loading teams…</div></div>
  <p class="footer">Host: open <code>/host</code> and sign in with the private host PIN. Team registration details are only shown to the host.</p>
 </section>
 <section id="host" class="view">
@@ -313,7 +380,7 @@ tr:hover td{background:rgba(54,224,194,.045)}
  </div>
 </section>
 <section id="projector" class="view"><div class="card projector"><div class="row spread"><h2>Projector view</h2><span id="projectorRoom" class="pill"></span></div><div id="projectorTimer" class="round-timer">Waiting</div><div id="projectorQuestion" class="question-box"></div><h2>Accepted buzzes</h2><div id="projectorBuzzes"></div></div></section>
-<section id="leaderboard" class="view"><div class="card"><div class="row spread"><h2>Live leaderboard</h2><button id="resetScores" class="danger" hidden>Reset scores</button></div><div id="leaderboardTable"></div></div></section>
+<section id="leaderboard" class="view"><div class="card leaderboard-card"><div class="row spread"><div><span class="eyebrow">THE RACE TO THE TOP</span><h2>Live leaderboard</h2><p class="muted">Every point counts. Rankings update as scores change.</p></div><button id="resetScores" class="danger" hidden>Reset scores</button></div><div id="leaderboardPodium" class="leaderboard-podium"></div><div id="leaderboardTable"></div></div></section>
 <footer class="site-credit"><div class="maker-credit"><strong>Designed &amp; developed by <a href="https://www.linkedin.com/in/sandeep-bolisetty-b7aa4a30b/" target="_blank" rel="noopener noreferrer">Sandeep Bolisetty</a></strong><span>Robotics &amp; Automation</span></div><div class="president-credit"><strong>SPARC President: <a href="https://www.linkedin.com/in/pravyanth-marreddy-3aa92a324" target="_blank" rel="noopener noreferrer">Pravyanth Marreddy</a></strong><span>SPARC — Student Robotics &amp; Automation Club</span></div><a href="https://www.linkedin.com/in/sandeep-bolisetty-b7aa4a30b/" target="_blank" rel="noopener noreferrer">Connect with the web developer on LinkedIn ↗</a><p>Online version: use HTTPS, keep the host PIN private, and test the quiz on multiple networks before the event.</p></footer>
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
