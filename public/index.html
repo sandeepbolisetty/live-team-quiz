@@ -365,6 +365,10 @@ tr:hover td{background:rgba(54,224,194,.045)}
 @media(max-width:760px){.connection-status{position:static;margin:0 auto 8px;width:max-content}.vfstr-masthead{padding-bottom:20px}}
 
 </style>
+
+<style>
+.winner-announcement{margin:14px 0;padding:16px 18px;border:1px solid rgba(54,224,194,.45);border-radius:14px;background:linear-gradient(110deg,rgba(8,75,78,.7),rgba(26,46,92,.7));color:#eafffb;font-weight:800;text-align:center;box-shadow:0 10px 26px rgba(0,0,0,.18)}
+</style>
 </head>
 <body>
 <header class="vfstr-masthead">
@@ -441,7 +445,7 @@ tr:hover td{background:rgba(54,224,194,.045)}
   <div class="stage-bottom-grid"><div class="stage-buzz-panel"><div class="stage-section-title"><span>⚡ BUZZER RACE</span><span class="stage-live-tag">LIVE FEED</span></div><div id="projectorBuzzes" class="stage-buzzes"></div></div><div class="stage-tip-panel"><span class="stage-tip-icon">✦</span><div><b>Think fast. Work together.</b><p>Watch the timer and wait for the host to reveal the answer.</p></div></div></div>
  </div>
 </section>
-<section id="leaderboard" class="view"><div class="card leaderboard-card"><div class="row spread"><div><span class="eyebrow">THE RACE TO THE TOP</span><h2>Live leaderboard</h2><p class="muted">Every point counts. Rankings update as scores change.</p></div><div class="row"><button id="exportResults" hidden>Download results CSV</button><button id="resetScores" class="danger" hidden>Reset scores</button></div></div><div id="leaderboardPodium" class="leaderboard-podium"></div><div id="leaderboardTable"></div></div></section>
+<section id="leaderboard" class="view"><div class="card leaderboard-card"><div class="row spread"><div><span class="eyebrow">THE RACE TO THE TOP</span><h2>Live leaderboard</h2><p class="muted">Every point counts. Rankings update as scores change.</p></div><div class="row"><button id="exportResults" hidden>Download results CSV</button><button id="resetScores" class="danger" hidden>Reset scores</button></div></div><div id="winnerAnnouncement" class="winner-announcement" hidden aria-live="polite"></div><div id="leaderboardPodium" class="leaderboard-podium"></div><div id="leaderboardTable"></div></div></section>
 <footer class="site-credit"><div class="maker-credit"><strong>Designed &amp; developed by <a href="https://www.linkedin.com/in/sandeep-bolisetty-b7aa4a30b/" target="_blank" rel="noopener noreferrer">Sandeep Bolisetty</a></strong><span>Robotics &amp; Automation</span></div><div class="president-credit"><strong>SPARC President: <a href="https://www.linkedin.com/in/pravyanth-marreddy-3aa92a324" target="_blank" rel="noopener noreferrer">Pravyanth Marreddy</a></strong><span>SPARC — Student Robotics &amp; Automation Club</span></div><a href="https://www.linkedin.com/in/sandeep-bolisetty-b7aa4a30b/" target="_blank" rel="noopener noreferrer">Connect with the web developer on LinkedIn ↗</a><p>Online version: use HTTPS, keep the host PIN private, and test the quiz on multiple networks before the event.</p></footer>
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
