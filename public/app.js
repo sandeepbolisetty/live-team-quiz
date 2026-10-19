@@ -322,6 +322,17 @@
       </li>
     `).join('');
 
+    if ($('homeTeamCount')) $('homeTeamCount').textContent = teams.length;
+    if ($('homeQuestionCount')) $('homeQuestionCount').textContent = data.questionCount ?? questions.length;
+    const phaseLabels = { hidden: 'Waiting', reading: 'Reading', buzzer: 'Buzzer live', answering: 'Answering', 'awaiting-reveal': 'Review', revealed: 'Complete' };
+    if ($('homeRoundStatus')) $('homeRoundStatus').textContent = phaseLabels[data.roundPhase] || 'Waiting';
+    if ($('homeRoundHint')) $('homeRoundHint').textContent = data.buzzerOpen ? 'Teams can buzz now' : (data.roundPhase === 'hidden' ? 'Host will start the first round' : 'Round in progress');
+    if ($('joinUrl') && $('joinQr')) {
+      const joinUrl = window.location.origin + '/';
+      $('joinUrl').textContent = joinUrl;
+      $('joinQr').src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=' + encodeURIComponent(joinUrl);
+      $('joinQr').alt = 'QR code for ' + joinUrl;
+    }
     $('homeTeams').innerHTML = teams.length
       ? '<ol>' + teamRows + '</ol>'
       : '<div class="empty">No teams registered yet.</div>';
@@ -546,6 +557,22 @@
     const sorted = [...teams].sort(
       (a, b) => b.score - a.score || a.name.localeCompare(b.name)
     );
+
+    if ($('leaderboardPodium')) {
+      const topThree = sorted.slice(0, 3);
+      const medals = ['🥇', '🥈', '🥉'];
+      const order = topThree.length >= 3 ? [1, 0, 2] : topThree.map((_, i) => i);
+      $('leaderboardPodium').innerHTML = topThree.length
+        ? order.map(index => {
+            const team = topThree[index];
+            return '<div class="podium-place ' + (index === 0 ? 'first' : '') + '">' +
+              '<span class="podium-medal">' + medals[index] + '</span>' +
+              '<b>' + esc(team.name) + '</b>' +
+              '<strong>' + Number(team.score || 0) + ' pts</strong>' +
+              '<small>' + (index === 0 ? 'CHAMPION POSITION' : 'RANK #' + (index + 1)) + '</small></div>';
+          }).join('')
+        : '<div class="podium-empty">The podium is waiting for its first competitors.</div>';
+    }
 
     $('leaderboardTable').innerHTML = sorted.length
       ? table(`
@@ -845,7 +872,25 @@
         }));
 
         memberRows.splice(index, 1);
-        renderMemberRows(false);
+      
+  const copyJoinButton = $('copyJoinLink');
+  if (copyJoinButton) {
+    copyJoinButton.addEventListener('click', async () => {
+      const url = window.location.origin + '/';
+      try {
+        await navigator.clipboard.writeText(url);
+        toast('Join link copied.');
+      } catch (_) {
+        const helper = document.createElement('textarea');
+        helper.value = url; helper.style.position = 'fixed'; helper.style.opacity = '0';
+        document.body.appendChild(helper); helper.select();
+        const copied = document.execCommand('copy'); helper.remove();
+        toast(copied ? 'Join link copied.' : 'Copy failed. You can copy the address from the QR panel.');
+      }
+    });
+  }
+
+  renderMemberRows(false);
       });
 
       $('members').appendChild(element);
