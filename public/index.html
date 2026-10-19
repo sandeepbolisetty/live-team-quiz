@@ -66,55 +66,95 @@ input:focus,select:focus,textarea:focus{outline:2px solid #477eae}
 @media(max-width:460px){.vfstr-masthead{grid-template-columns:1fr 1fr;gap:10px}.vfstr-logo{max-width:130px;height:92px}.vfstr-brand{grid-column:1/-1;grid-row:1}.vfstr-logo:first-child{grid-column:1;grid-row:2}.vfstr-logo:last-child{grid-column:2;grid-row:2}.vfstr-brand .eyebrow{font-size:.63rem}.vfstr-brand h1{font-size:1.4rem}
 .deemed-label{font-size:.72rem}.vfstr-brand .subtitle{font-size:.8rem}}
 
-/* ANIMATED LIVE WALLPAPER BACKGROUND */
-html{background:#080d2a;min-height:100%}
+/* SMOOTH AURORA LIVE WALLPAPER — full-page animated background */
+html{min-height:100%;background:#05091c}
 body{
- position:relative;isolation:isolate;overflow-x:hidden;
- background:linear-gradient(120deg,#07122e,#10134a,#25104b,#082e50,#170d3a);
- background-size:300% 300%;
- animation:wallpaperFlow 22s ease-in-out infinite;
+  min-height:100vh;position:relative;isolation:isolate;overflow-x:hidden;
+  background:transparent!important;color:#eef5ff;
 }
 body:before{
- content:"";position:fixed;inset:-18%;z-index:-1;pointer-events:none;
- background:
-  radial-gradient(ellipse at 15% 28%,#00d9ff55 0,transparent 27%),
-  radial-gradient(ellipse at 78% 24%,#e32bce4a 0,transparent 29%),
-  radial-gradient(ellipse at 55% 82%,#5646ff55 0,transparent 32%),
-  radial-gradient(ellipse at 92% 75%,#ff4b8b35 0,transparent 23%);
- background-size:150% 150%;
- filter:blur(20px);
- animation:auroraDrift 18s ease-in-out infinite alternate;
+  content:"";position:fixed;inset:-35%;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(ellipse at 18% 28%,rgba(0,220,255,.42) 0%,transparent 30%),
+    radial-gradient(ellipse at 78% 20%,rgba(207,45,255,.36) 0%,transparent 32%),
+    radial-gradient(ellipse at 58% 78%,rgba(42,89,255,.42) 0%,transparent 35%),
+    radial-gradient(ellipse at 88% 72%,rgba(255,53,154,.25) 0%,transparent 28%),
+    radial-gradient(ellipse at 35% 65%,rgba(0,255,190,.16) 0%,transparent 30%),
+    linear-gradient(125deg,#05091c 0%,#091638 34%,#130d35 67%,#071c32 100%);
+  background-size:140% 140%,150% 150%,160% 160%,145% 145%,155% 155%,100% 100%;
+  background-position:0% 20%,100% 0%,50% 100%,100% 100%,0% 100%,center;
+  filter:saturate(1.18);
+  animation:auroraFloat 32s ease-in-out infinite alternate;
+  will-change:background-position,transform;
 }
 body:after{
- content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.2;
- background-image:radial-gradient(circle,#bceeff 1px,transparent 1.7px);
- background-size:42px 42px;
- mask-image:linear-gradient(to bottom,transparent,#000 25%,#000 78%,transparent);
- animation:starfieldDrift 45s linear infinite;
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.3;
+  background-image:
+    radial-gradient(circle,rgba(194,241,255,.95) 1px,transparent 1.8px),
+    radial-gradient(circle,rgba(167,139,250,.8) 1px,transparent 2px);
+  background-size:53px 59px,91px 103px;
+  background-position:0 0,23px 37px;
+  animation:starDrift 70s linear infinite;
 }
-@keyframes wallpaperFlow{
- 0%,100%{background-position:0% 50%}
- 50%{background-position:100% 50%}
+@keyframes auroraFloat{
+  0%{background-position:0% 20%,100% 0%,50% 100%,100% 100%,0% 100%,center;transform:translate3d(-1%,0,0) scale(1)}
+  50%{background-position:35% 70%,45% 35%,85% 25%,30% 65%,75% 20%,center;transform:translate3d(1%,1%,0) scale(1.035)}
+  100%{background-position:100% 80%,0% 100%,10% 0%,0% 0%,100% 80%,center;transform:translate3d(-.5%,-1%,0) scale(1.015)}
 }
-@keyframes auroraDrift{
- 0%{transform:translate3d(-2%,1%,0) scale(1);background-position:0% 30%}
- 50%{transform:translate3d(2%,-1%,0) scale(1.08);background-position:100% 70%}
- 100%{transform:translate3d(-1%,2%,0) scale(1.02);background-position:20% 100%}
+@keyframes starDrift{to{background-position:159px 177px, -91px 103px}}
+/* Translucent surfaces let the wallpaper remain visible without sacrificing contrast */
+.vfstr-masthead{
+  background:linear-gradient(115deg,rgba(7,20,53,.91),rgba(18,22,72,.88) 52%,rgba(53,13,65,.88))!important;
+  border-image:linear-gradient(90deg,#00dcff,#7b61ff,#ff4bb8,#ffc45c) 1;
+  box-shadow:0 14px 44px rgba(0,0,0,.25);
 }
-@keyframes starfieldDrift{from{background-position:0 0}to{background-position:84px 126px}}
-/* Keep the animated wallpaper behind readable page content */
-.vfstr-masthead{background:linear-gradient(115deg,#0a1745ee 0%,#101b54ee 48%,#3b1248ee 100%);border-image:linear-gradient(90deg,#00d9ff,#7550ff,#f52db5,#ffb84d) 1}
-.vfstr-masthead:before{background:radial-gradient(circle at 10% 50%,#00d9ff35,transparent 24%),radial-gradient(circle at 90% 50%,#ff40d535,transparent 24%)}
-.vfstr-brand h1{color:#f2f7ff;text-shadow:0 0 24px #42aaff40}
-.deemed-label,.vfstr-brand .subtitle{color:#c4d5f7}
-.vfstr-room{background:#0a1745e8;color:#d7eaff;border-bottom-color:#30477f}
-nav{background:linear-gradient(100deg,#071735f2,#21175ff2 55%,#4b1454f2);border-bottom-color:#20dcff}
-.site-credit{background:linear-gradient(110deg,#081633f2,#111849f2 60%,#32113ff2);color:#edf5ff;border-top-color:#1bdcff}
-.site-credit span{color:#bdcbed}
-.site-credit .maker-credit a,.site-credit .president-credit a{color:#45e4ff}
-.site-credit a{color:#e8f8ff;border-color:#385183;background:#111f40}
+.vfstr-masthead:before{
+  background:radial-gradient(circle at 10% 50%,rgba(0,220,255,.22),transparent 27%),radial-gradient(circle at 90% 50%,rgba(255,55,188,.2),transparent 27%);
+}
+.vfstr-brand h1{color:#f5f8ff;text-shadow:0 0 26px rgba(58,169,255,.24)}
+.deemed-label,.vfstr-brand .subtitle{color:#c6d8f8}
+.vfstr-brand .quiz-label{background:linear-gradient(100deg,#087bff,#7445f5 52%,#ed2b9e);box-shadow:0 0 24px rgba(105,70,255,.36)}
+.vfstr-room{background:rgba(6,17,43,.86)!important;color:#d8ecff;border-bottom-color:#314c83}
+nav{background:linear-gradient(100deg,rgba(5,19,45,.95),rgba(28,20,84,.95) 55%,rgba(67,16,71,.94))!important;border-bottom-color:#20dcff;backdrop-filter:blur(12px)}
+nav button{color:#eaf4ff}
+nav button.active,nav button:hover{background:linear-gradient(110deg,#087bff,#a52bdb);color:#fff}
+.card{
+  background:linear-gradient(145deg,rgba(10,24,54,.88),rgba(10,18,43,.84))!important;
+  color:#eef5ff!important;border:1px solid rgba(113,156,225,.27)!important;
+  box-shadow:0 14px 36px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.045);
+  backdrop-filter:blur(12px);
+}
+.card h2,.card h3,.card label{color:#e9f4ff}
+.card p,.muted{color:#b9c9e8}
+input,select,textarea{background:rgba(4,12,31,.88)!important;color:#f4f7ff!important;border-color:#38517d!important}
+input::placeholder,textarea::placeholder{color:#91a5c9}
+button{transition:transform .18s ease,filter .18s ease,box-shadow .18s ease}
+button:hover{filter:brightness(1.12);transform:translateY(-1px)}
+button.primary{background:linear-gradient(110deg,#087bff,#7045f5)!important;color:#fff}
+button.good{background:linear-gradient(110deg,#00a982,#087b77)!important;color:#fff}
+button.danger{background:linear-gradient(110deg,#ff386b,#c91c72)!important;color:#fff}
+.question-box,.option,.answer-pick{
+  background:linear-gradient(130deg,rgba(20,41,79,.95),rgba(17,23,57,.95))!important;
+  color:#f0f6ff!important;border-color:#355384!important;
+}
+.option.correct{background:rgba(13,83,70,.95)!important;border-color:#25e6a5!important}
+.stats>div{background:rgba(17,34,69,.92)!important;border-color:#314c7a!important;color:#f2f7ff}
+.stats span{color:#b6c8e8}.stats b{color:#fff}
+.pill,.badge{background:rgba(18,39,76,.94)!important;color:#c8f2ff;border-color:#385581}
+.notice{background:rgba(14,73,66,.94);color:#c8fff0;border-color:#207a71}
+.notice.warn{background:rgba(83,58,20,.94);color:#ffe7a1;border-color:#98702b}
+.round-timer{background:rgba(51,20,48,.94);color:#ffb8d3;border-color:#8e3563}
+table{background:rgba(8,19,43,.96);color:#edf5ff}
+td,th{border-bottom-color:#2a416a;color:#e4edff}
+th{background:rgba(23,41,76,.98);color:#6ee4ff}
+.site-credit{background:linear-gradient(110deg,rgba(5,17,42,.97),rgba(15,23,69,.96) 60%,rgba(47,15,57,.96))!important;border-top-color:#17dfff;color:#e7f4ff}
+.site-credit span{color:#b1c4e5}
+.site-credit a,.site-credit .maker-credit a,.site-credit .president-credit a{color:#45e4ff}
+.site-credit a{border-color:#35517f;background:rgba(17,31,64,.9)}
+#toast{background:#15274d;border-color:#36bfff;color:#fff}
 @media(prefers-reduced-motion:reduce){
- body,body:before,body:after{animation:none!important}
+  body:before,body:after{animation:none!important}
+  button{transition:none!important}
 }
 
 </style>
