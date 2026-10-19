@@ -753,16 +753,15 @@ io.on('connection', socket => {
       for (const entry of answeringTeams) {
         entry.isCorrect = entry.selectedOption === question.correct;
 
-        if (entry.isCorrect && !entry.awarded) {
+        // A team can receive points for a question only once, even if a
+        // legacy/manual scoring event or a repeated client event is attempted.
+        const alreadyScored = db.prepare(
+          'SELECT 1 FROM score_history WHERE team_id = ? AND question_id = ? LIMIT 1'
+        ).get(entry.teamId, question.id);
+
+        if (entry.isCorrect && !entry.awarded && !alreadyScored) {
           updateScore.run(question.points, entry.teamId);
-
-          insertHistory.run(
-            entry.teamId,
-            question.id,
-            question.points,
-            now()
-          );
-
+          insertHistory.run(entry.teamId, question.id, question.points, now());
           entry.awarded = true;
         }
       }
@@ -817,11 +816,16 @@ io.on('connection', socket => {
 
     const buzz = buzzes.find(entry => entry.teamId === teamId);
 
+    const alreadyScored = question && db.prepare(
+      'SELECT 1 FROM score_history WHERE team_id = ? AND question_id = ? LIMIT 1'
+    ).get(teamId, question.id);
+
     if (
       !question ||
       !team ||
       !buzz ||
       buzz.awarded ||
+      alreadyScored ||
       buzz.order > 2 ||
       getSetting('revealed', '0') === '1'
     ) {
