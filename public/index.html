@@ -139,6 +139,41 @@ th{background:rgba(23,41,76,.98);color:#6ee4ff}
   button{transition:none!important}
 }
 
+
+/* HIGHLIGHT VIGNAN AND SPARC LOGOS */
+.vfstr-masthead{isolation:isolate}
+.vfstr-logo{
+  z-index:1;box-sizing:border-box;padding:10px;
+  border-radius:20px;
+  background:radial-gradient(ellipse at center,rgba(255,255,255,.98) 0%,rgba(242,248,255,.94) 68%,rgba(216,232,255,.82) 100%);
+  border:2px solid rgba(255,255,255,.96);
+  mix-blend-mode:normal!important;
+  filter:drop-shadow(0 0 5px rgba(73,199,255,.85))
+         drop-shadow(0 0 15px rgba(89,119,255,.55))
+         drop-shadow(0 8px 12px rgba(0,0,0,.32));
+  box-shadow:0 0 0 3px rgba(65,171,255,.42),0 0 24px rgba(65,171,255,.42),inset 0 0 16px rgba(255,255,255,.9);
+  animation:logoGlow 3.2s ease-in-out infinite alternate;
+  transition:transform .25s ease,filter .25s ease,box-shadow .25s ease;
+}
+#sparcLogo{
+  box-shadow:0 0 0 3px rgba(255,88,183,.42),0 0 26px rgba(255,88,183,.46),inset 0 0 16px rgba(255,255,255,.9);
+  filter:drop-shadow(0 0 5px rgba(255,117,203,.9))
+         drop-shadow(0 0 15px rgba(255,65,160,.52))
+         drop-shadow(0 8px 12px rgba(0,0,0,.32));
+  animation:logoGlowSparc 3.2s ease-in-out infinite alternate;
+}
+.vfstr-logo:hover{transform:scale(1.08);filter:drop-shadow(0 0 9px rgba(91,220,255,.95)) drop-shadow(0 0 22px rgba(123,97,255,.8))}
+#sparcLogo:hover{filter:drop-shadow(0 0 9px rgba(255,132,210,.98)) drop-shadow(0 0 22px rgba(255,65,160,.82))}
+@keyframes logoGlow{
+ from{box-shadow:0 0 0 2px rgba(65,171,255,.3),0 0 16px rgba(65,171,255,.3),inset 0 0 12px rgba(255,255,255,.9)}
+ to{box-shadow:0 0 0 4px rgba(65,171,255,.6),0 0 30px rgba(65,171,255,.68),inset 0 0 18px rgba(255,255,255,1)}
+}
+@keyframes logoGlowSparc{
+ from{box-shadow:0 0 0 2px rgba(255,88,183,.3),0 0 16px rgba(255,88,183,.3),inset 0 0 12px rgba(255,255,255,.9)}
+ to{box-shadow:0 0 0 4px rgba(255,88,183,.62),0 0 30px rgba(255,88,183,.7),inset 0 0 18px rgba(255,255,255,1)}
+}
+@media(prefers-reduced-motion:reduce){.vfstr-logo,#sparcLogo{animation:none!important}}
+
 </style>
 </head>
 <body>
