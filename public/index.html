@@ -691,6 +691,51 @@ main nav button:hover{
 }
 </style>
 
+
+<style id="mobile-header-refinement">
+@media(max-width:600px){
+ .vfstr-masthead{
+   display:grid!important;
+   grid-template-columns:1fr 1fr!important;
+   grid-template-areas:"status status" "brand brand" "vignan sparc"!important;
+   justify-items:center!important;align-items:center!important;
+   gap:10px 14px!important;padding:14px 14px 18px!important
+ }
+ #connectionStatus{grid-area:status!important;justify-self:start!important;position:static!important;margin:0!important;font-size:11px!important;padding:7px 10px!important}
+ #vignanLogo{grid-area:vignan!important}
+ #sparcLogo{grid-area:sparc!important}
+ .vfstr-brand{grid-area:brand!important;order:initial!important;width:100%!important;min-width:0!important;margin:0!important}
+ .vfstr-brand h1{
+   font-size:clamp(21px,5.7vw,27px)!important;line-height:1.12!important;
+   letter-spacing:-.035em!important;margin:3px 0 7px!important
+ }
+ .vfstr-brand .deemed-label{font-size:12px!important;margin:5px 0!important}
+ .vfstr-brand .subtitle{font-size:10px!important;line-height:1.4!important;margin:8px 0!important}
+ .vfstr-brand .quiz-label{font-size:10px!important;letter-spacing:.1em!important;padding:8px 12px!important;margin-top:5px!important}
+ .vfstr-logo{
+   width:min(112px,34vw)!important;height:min(112px,34vw)!important;
+   max-width:100%!important;margin:0 auto!important;object-fit:contain!important
+ }
+ .vfstr-room{padding:10px 12px!important;font-size:12px!important}
+ nav{gap:6px!important;padding:8px 6px!important}
+ body nav button,body nav button:not(.active){
+   flex:1 1 27%!important;max-width:31%!important;min-height:43px!important;
+   padding:8px 5px!important;font-size:12px!important;line-height:1.15!important;
+   border-radius:12px!important
+ }
+ main{padding:10px!important}
+ .premium-hero{padding:16px!important;gap:18px!important}
+ .hero-copy h2{font-size:clamp(27px,7.2vw,34px)!important;line-height:1.15!important}
+ .hero-copy p{font-size:14px!important;line-height:1.55!important}
+ .hero-trust{grid-template-columns:1fr 1fr!important;font-size:12px!important}
+ .join-qr-panel{padding:15px!important}
+}
+@media(min-width:601px) and (max-width:900px){
+ .vfstr-brand h1{font-size:clamp(28px,4vw,40px)!important}
+ .vfstr-logo{width:100px!important;height:100px!important}
+}
+</style>
+
 </head>
 <body>
 <header class="vfstr-masthead">
