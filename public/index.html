@@ -126,12 +126,19 @@ input:focus,select:focus,textarea:focus{outline:2px solid #477eae}
 <div id="toast" role="status" aria-live="polite"></div>
 <script>
 function tryLogoFallback(img, kind){
+  // The first path is already used by the img src, so start fallbacks at alternate names.
   const candidates = kind === 'vignan'
-    ? ['/vignan-logo.jpeg','/images/vignan-logo.jpeg','/images/vignan-logo.png','/images/vignan.png','/assets/vignan-logo.png','/assets/vignan.png','/vignan.png','/images/vfstr-logo.png','/vfstr-logo.png','/Vignan_Logo.png','/vignan-logo.svg','/images/vignan-logo.svg']
-    : ['/sparc-logo.jpeg','/images/sparc-logo.jpeg','/images/sparc-logo.png','/images/sparc.png','/assets/sparc-logo.png','/assets/sparc.png','/sparc.png','/SPARC_Logo.png','/sparc-logo.svg','/images/sparc-logo.svg'];
+    ? ['/images/vignan-logo.jpeg','/images/vignan-logo.png','/images/vignan.png','/assets/vignan-logo.png','/assets/vignan.png','/vignan.png','/images/vfstr-logo.png','/vfstr-logo.png','/Vignan_Logo.png','/vignan-logo.svg','/images/vignan-logo.svg']
+    : ['/images/sparc-logo.jpeg','/images/sparc-logo.png','/images/sparc.png','/assets/sparc-logo.png','/assets/sparc.png','/sparc.png','/SPARC_Logo.png','/sparc-logo.svg','/images/sparc-logo.svg'];
   const index = Number(img.dataset.fallbackIndex || 0);
-  if (index < candidates.length) { img.dataset.fallbackIndex = String(index + 1); img.src = candidates[index]; }
-  else { img.style.visibility = 'hidden'; console.warn(kind + ' logo file path not found. Update the image src to the exact path in GitHub.'); }
+  if (index < candidates.length) {
+    img.dataset.fallbackIndex = String(index + 1);
+    img.src = candidates[index];
+  } else {
+    img.onerror = null;
+    img.style.display = 'none';
+    console.warn(kind + ' logo file path not found. Check /public/' + kind + '-logo.jpeg.');
+  }
 }
 </script>
 <script src="/socket.io/socket.io.js"></script><script src="/app.js"></script>
