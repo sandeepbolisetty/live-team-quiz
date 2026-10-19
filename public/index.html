@@ -174,6 +174,87 @@ th{background:rgba(23,41,76,.98);color:#6ee4ff}
 }
 @media(prefers-reduced-motion:reduce){.vfstr-logo,#sparcLogo{animation:none!important}}
 
+
+/* PREMIUM QUIZ UI — midnight navy, electric teal, restrained amber */
+:root{
+ --ui-ink:#f3f7ff;--ui-muted:#b3c2dd;--ui-line:rgba(157,190,239,.19);
+ --ui-surface:rgba(8,19,42,.79);--ui-surface-strong:rgba(7,16,36,.94);
+ --ui-teal:#36e0c2;--ui-blue:#4f8cff;--ui-amber:#ffc96b;
+ --ui-shadow:0 18px 48px rgba(0,0,0,.28);
+}
+html{background:#061022;color-scheme:dark;scroll-behavior:smooth}
+body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.005em}
+body:before{background:linear-gradient(180deg,rgba(3,8,22,.28),rgba(3,8,22,.64))!important}
+.vfstr-masthead{
+ gap:clamp(14px,2vw,28px);padding:clamp(16px,2.5vw,28px) clamp(14px,3vw,42px);
+ background:linear-gradient(115deg,rgba(5,18,42,.91),rgba(10,25,52,.88) 52%,rgba(25,17,49,.9))!important;
+ border-bottom:1px solid rgba(54,224,194,.52)!important;
+ box-shadow:0 14px 40px rgba(0,0,0,.22),0 1px 0 rgba(255,255,255,.06) inset;
+}
+.vfstr-masthead:before{background:radial-gradient(circle at 12% 45%,rgba(54,224,194,.12),transparent 28%),radial-gradient(circle at 88% 45%,rgba(79,140,255,.15),transparent 30%)}
+.vfstr-brand h1{color:#f6f9ff!important;text-shadow:0 3px 20px rgba(79,140,255,.18);letter-spacing:-.035em}
+.deemed-label,.vfstr-brand .subtitle{color:#b5c8e6!important}
+.vfstr-brand .subtitle{letter-spacing:.08em;text-transform:uppercase;font-size:.74rem}
+.vfstr-brand .quiz-label{background:linear-gradient(105deg,#087e89,#2364d8)!important;box-shadow:0 5px 22px rgba(54,224,194,.2);border:1px solid rgba(123,255,235,.28);letter-spacing:.12em}
+.vfstr-logo{border-color:rgba(255,255,255,.86);padding:9px;border-radius:17px;animation:none}
+.vfstr-logo:hover,#sparcLogo:hover{transform:translateY(-2px) scale(1.035)}
+.vfstr-room{background:rgba(4,13,30,.84)!important;color:#b8cce8!important;border-bottom:1px solid var(--ui-line)!important}
+.vfstr-room strong{color:var(--ui-teal);letter-spacing:.12em}
+nav{background:rgba(5,14,32,.88)!important;border-bottom:1px solid rgba(54,224,194,.24)!important;box-shadow:0 10px 28px rgba(0,0,0,.12);backdrop-filter:blur(18px)}
+nav button{border:1px solid transparent!important;border-radius:10px!important;color:#b9c9e2!important;font-weight:650;transition:background .2s ease,border-color .2s ease,transform .2s ease}
+nav button.active,nav button:hover{background:linear-gradient(115deg,rgba(8,126,137,.9),rgba(35,100,216,.9))!important;border-color:rgba(112,239,224,.3)!important;color:white!important;box-shadow:0 6px 18px rgba(0,0,0,.16)}
+.card{
+ background:linear-gradient(145deg,rgba(8,21,46,.88),rgba(8,16,36,.82))!important;
+ border:1px solid var(--ui-line)!important;border-radius:18px!important;
+ box-shadow:var(--ui-shadow),inset 0 1px rgba(255,255,255,.055)!important;
+ backdrop-filter:blur(16px);transition:border-color .22s ease,transform .22s ease,box-shadow .22s ease;
+}
+.card:hover{border-color:rgba(54,224,194,.34)!important;box-shadow:0 22px 52px rgba(0,0,0,.32),inset 0 1px rgba(255,255,255,.06)!important}
+.card h2,.card h3{letter-spacing:-.025em}
+button{border-radius:10px!important;font-weight:700;letter-spacing:.01em;box-shadow:0 5px 14px rgba(0,0,0,.15);transition:transform .18s ease,filter .18s ease,box-shadow .18s ease}
+button.primary{background:linear-gradient(115deg,#087f8c,#2868dc)!important;border:1px solid rgba(125,241,229,.32)!important}
+button.good{background:linear-gradient(115deg,#087f69,#13a886)!important}
+button.danger{background:linear-gradient(115deg,#c02b61,#e54b70)!important}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--ui-teal)!important;outline-offset:3px}
+input,select,textarea{
+ border:1px solid rgba(151,183,231,.25)!important;border-radius:10px!important;
+ background:rgba(3,11,27,.78)!important;color:#f5f8ff!important;
+ box-shadow:inset 0 1px 4px rgba(0,0,0,.16);transition:border-color .18s ease,box-shadow .18s ease;
+}
+input:focus,select:focus,textarea:focus{border-color:rgba(54,224,194,.75)!important;box-shadow:0 0 0 3px rgba(54,224,194,.1)!important;outline:none}
+input::placeholder,textarea::placeholder{color:#8499ba!important}
+.question-box,.option,.answer-pick{background:linear-gradient(135deg,rgba(12,32,64,.96),rgba(10,21,46,.96))!important;border-color:rgba(113,159,225,.28)!important;border-radius:12px!important}
+.option:hover,.answer-pick:hover{border-color:rgba(54,224,194,.65)!important;transform:translateY(-1px)}
+.option.correct{background:linear-gradient(120deg,rgba(7,103,83,.96),rgba(8,73,68,.96))!important}
+.stats>div{border-radius:14px!important;background:rgba(6,17,39,.8)!important;border:1px solid var(--ui-line)!important}
+.stats span{color:#9fb4d4!important}.stats b{color:#f4f8ff!important}
+.pill,.badge{border:1px solid rgba(54,224,194,.22)!important;border-radius:999px!important;background:rgba(10,46,64,.78)!important;color:#aaf7ea!important}
+.notice{border-radius:12px!important;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+table{border-collapse:separate!important;border-spacing:0;overflow:hidden;border-radius:12px;background:rgba(4,13,30,.86)!important}
+th{background:rgba(12,38,66,.98)!important;color:#8af1e1!important;letter-spacing:.04em}
+td,th{border-bottom:1px solid rgba(157,190,239,.12)!important}
+tr:hover td{background:rgba(54,224,194,.045)}
+.site-credit{background:rgba(4,12,28,.94)!important;border-top:1px solid rgba(54,224,194,.4)!important;backdrop-filter:blur(16px)}
+#toast{border:1px solid rgba(54,224,194,.34)!important;border-radius:12px!important;box-shadow:0 14px 38px rgba(0,0,0,.3)}
+@media(max-width:760px){
+ .vfstr-masthead{grid-template-columns:88px minmax(0,1fr) 88px;gap:10px;padding:14px 10px 18px}
+ .vfstr-logo{width:100%;max-width:88px;height:76px;padding:5px;border-radius:12px}
+ .vfstr-brand h1{font-size:clamp(1.05rem,4vw,1.5rem);line-height:1.15}
+ .vfstr-brand .subtitle{font-size:.61rem;letter-spacing:.04em}
+ .vfstr-brand .quiz-label{font-size:.65rem;padding:6px 8px}
+ nav{gap:6px}
+ nav button{padding:9px 10px!important;font-size:.84rem}
+ .card{border-radius:14px!important}
+}
+@media(max-width:390px){
+ .vfstr-masthead{grid-template-columns:64px minmax(0,1fr) 64px;gap:7px}
+ .vfstr-logo{max-width:64px;height:60px;padding:4px}
+ .vfstr-brand h1{font-size:1rem}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
 </style>
 </head>
 <body>
