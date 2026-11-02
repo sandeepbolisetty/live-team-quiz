@@ -14,6 +14,8 @@
 
   const TEAM_ID_KEY = 'liveQuizTeamId';
   const TEAM_TOKEN_KEY = 'liveQuizTeamToken';
+  const HOST_SESSION_KEY = 'liveQuizHostSession';
+  let hostSessionToken = localStorage.getItem(HOST_SESSION_KEY) || '';
 
   let teamId = localStorage.getItem(TEAM_ID_KEY) || '';
   let teamToken = localStorage.getItem(TEAM_TOKEN_KEY) || '';
@@ -123,9 +125,12 @@
   socket.on('host:logout-ok', () => {
     isHost = false;
     hostReconnectPending = false;
+    hostSessionToken = '';
+    localStorage.removeItem(HOST_SESSION_KEY);
     $('hostPin').value = '';
     $('hostLogin').hidden = false;
     $('hostPanel').hidden = true;
+    $('hostPanel').classList.remove('host-reconnecting');
     $('resetScores').hidden = true;
     $('exportResults').hidden = true;
     view('home');
@@ -144,16 +149,48 @@
   socket.on('host:login-ok', data => {
     isHost = true;
     hostReconnectPending = false;
+    if (data.hostToken) {
+      hostSessionToken = data.hostToken;
+      localStorage.setItem(HOST_SESSION_KEY, hostSessionToken);
+    }
 
+    $('hostPin').value = '';
     $('hostLogin').hidden = true;
     $('hostPanel').hidden = false;
+    $('hostPanel').classList.remove('host-reconnecting');
     $('resetScores').hidden = false;
     $('exportResults').hidden = false;
 
     latest = data;
     render(data);
 
-    toast('Host login successful.');
+    toast('Host dashboard connected.');
+  });
+
+  socket.on('host:resume-failed', () => {
+    hostReconnectPending = false;
+    hostSessionToken = '';
+    localStorage.removeItem(HOST_SESSION_KEY);
+    isHost = false;
+    $('hostPanel').hidden = true;
+    $('hostPanel').classList.remove('host-reconnecting');
+    $('hostLogin').hidden = false;
+    $('resetScores').hidden = true;
+    $('exportResults').hidden = true;
+    toast('Host session expired. Please sign in again.');
+  });
+
+  socket.on('host:session-replaced', () => {
+    isHost = false;
+    hostReconnectPending = false;
+    hostSessionToken = '';
+    localStorage.removeItem(HOST_SESSION_KEY);
+    $('hostPanel').hidden = true;
+    $('hostPanel').classList.remove('host-reconnecting');
+    $('hostLogin').hidden = false;
+    $('resetScores').hidden = true;
+    $('exportResults').hidden = true;
+    toast('Host access was opened in another browser. Please sign in again here.');
   });
 
   socket.on('state', data => {
@@ -980,11 +1017,14 @@
   }
 
   function requestHostReauthentication() {
-    const pin = $('hostPin').value;
-    if (!hostReconnectPending || !pin) return;
-    // The server binds host permissions to a Socket.IO connection, so reconnect
-    // requires re-authentication. Reuse the PIN already entered in this page.
-    socket.emit('host:login', { pin });
+    if (!hostReconnectPending) return;
+    if (hostSessionToken) {
+      socket.emit('host:resume', { token: hostSessionToken });
+      return;
+    }
+    // Older sessions without a saved token must sign in once to create one.
+    $('hostPanel').hidden = true;
+    $('hostLogin').hidden = false;
   }
 
   updateConnectionStatus(socket.connected);
@@ -994,15 +1034,13 @@
   });
   socket.on('disconnect', () => {
     updateConnectionStatus(false);
-    if (isHost) {
+    if (isHost || hostSessionToken) {
       hostReconnectPending = true;
       isHost = false;
-      $('hostPanel').hidden = true;
-      $('hostLogin').hidden = false;
-      $('resetScores').hidden = true;
-      $('exportResults').hidden = true;
+      $('hostPanel').hidden = false;
+      $('hostPanel').classList.add('host-reconnecting');
+      $('hostLogin').hidden = true;
       view('host');
-      toast('Connection interrupted. Reconnecting and restoring host access…');
     }
   });
   socket.on('connect_error', () => updateConnectionStatus(false));
