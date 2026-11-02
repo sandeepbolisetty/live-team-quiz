@@ -196,6 +196,7 @@ function allTeams(includePrivate = false) {
         score: t.score,
         warnings: Number((db.prepare('SELECT warnings FROM participant_flags WHERE team_id = ?').get(t.id) || {}).warnings || 0),
         eliminated: Boolean((db.prepare('SELECT eliminated FROM participant_flags WHERE team_id = ?').get(t.id) || {}).eliminated),
+        eliminationReason: (db.prepare('SELECT elimination_reason FROM participant_flags WHERE team_id = ?').get(t.id) || {}).elimination_reason || '',
         createdAt: t.created_at
       };
     });
@@ -717,6 +718,7 @@ io.on('connection', socket => {
   // Backwards-compatible event alias.
   socket.on('host:quiz:start-buzzer', () => {
     if (!requireHost(socket)) return emitError(socket, 'Host login required.');
+    if (getSetting('test_ended', '0') === '1') return emitError(socket, 'The test has ended.');
     if (roundPhase !== 'hidden') return emitError(socket, 'Finish the current question first.');
     if (!currentQuestion()) return emitError(socket, 'Import or add questions first.');
     stopBuzzerTimer();
