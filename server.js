@@ -293,7 +293,7 @@ function broadcast() {
   const state = publicState(false);
   for (const client of io.sockets.sockets.values()) {
     if (client.data.teamId && isTeamEliminated(client.data.teamId)) {
-      client.emit('state', { ...state, questions: [], questionCount: 0, currentQuestion: null, questionVisible: false, buzzerOpen: false, buzzes: [], answers: [] });
+      client.emit('state', { ...state, teams: (state.teams || []).filter(team => team.id !== client.data.teamId), questions: [], questionCount: 0, currentQuestion: null, questionVisible: false, buzzerOpen: false, buzzes: [], answers: [] });
     } else {
       client.emit('state', state);
     }
