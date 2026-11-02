@@ -546,7 +546,9 @@
     const myAnswer = (data.answers || []).find(answer => answer.teamId === teamId);
     const answerArea = $('teamAnswerArea');
     if (answerArea) {
-      if (!myTeam || !data.questionVisible) {
+      if (myTeam?.eliminated) {
+        answerArea.innerHTML = '<div class="eliminated-screen">You have been eliminated from this quiz. Reason: ' + esc(myTeam.eliminationReason || 'Three rule violations recorded.') + '</div>';
+      } else if (!myTeam || !data.questionVisible) {
         answerArea.innerHTML = '';
       } else if (data.revealed) {
         answerArea.innerHTML = `<div class="notice">Round complete. ${myAnswer?.isCorrect ? 'Correct answer — points awarded.' : 'No points for this question.'}</div>`;
