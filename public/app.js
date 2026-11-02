@@ -11,7 +11,7 @@
   let lastWarningSecond = null;
   let toastTimer;
   let buzzerCountdownInterval = null;
-  let cameraStream = null, phoneDetector = null, cameraLoop = null, lastPhoneQuestion = null, cameraPromptedQuestion = null, tabViolationQuestion = null, selectedAnswerIndex = null, fullscreenWasEntered = false;
+  let cameraStream = null, phoneDetector = null, cameraLoop = null, lastPhoneQuestion = null, cameraPromptedQuestion = null, tabViolationQuestion = null, selectedAnswerIndex = null, fullscreenWasEntered = false, lastAnswerQuestion = null, phoneDetectionStreak = 0;
 
   const TEAM_ID_KEY = 'liveQuizTeamId';
   const TEAM_TOKEN_KEY = 'liveQuizTeamToken';
@@ -323,6 +323,7 @@
     $('projectorRoom').textContent = 'ROOM: ' + data.roomCode;
 
     const teams = data.teams || [];
+    if (lastAnswerQuestion !== data.currentIndex) { selectedAnswerIndex = null; lastAnswerQuestion = data.currentIndex; phoneDetectionStreak = 0; }
     const question = data.currentQuestion;
     const buzzes = data.buzzes || [];
     const questions = data.questions || [];
@@ -898,7 +899,7 @@
   }
   async function detectPhone(questionIndex) {
     if (!cameraStream || !phoneDetector || !latest || !latest.questionVisible || latest.currentIndex !== questionIndex || latest.testEnded) return;
-    try { const predictions = await phoneDetector.detect($('participantCamera')); if (predictions.some(p => p.class === 'cell phone' && p.score >= 0.75) && lastPhoneQuestion !== questionIndex) { lastPhoneQuestion = questionIndex; socket.emit('participant:violation',{teamId,token:teamToken,kind:'mobile_phone'}); } } catch (_) {}
+    try { const predictions = await phoneDetector.detect($('participantCamera')); if (predictions.some(p => p.class === 'cell phone' && p.score >= 0.78)) phoneDetectionStreak++; else phoneDetectionStreak = 0; if (phoneDetectionStreak >= 3 && lastPhoneQuestion !== questionIndex) { lastPhoneQuestion = questionIndex; phoneDetectionStreak = 0; socket.emit('participant:violation',{teamId,token:teamToken,kind:'mobile_phone'}); } } catch (_) {}
     cameraLoop = setTimeout(() => detectPhone(questionIndex), 1400);
   }
   function stopCamera() { if (cameraLoop) clearTimeout(cameraLoop); cameraLoop=null; if (cameraStream) cameraStream.getTracks().forEach(t=>t.stop()); cameraStream=null; if ($('participantCamera')) $('participantCamera').srcObject=null; if ($('cameraStatus')) $('cameraStatus').textContent='Camera stopped'; }
