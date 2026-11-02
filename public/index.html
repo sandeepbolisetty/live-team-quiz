@@ -736,17 +736,6 @@ main nav button:hover{
 }
 </style>
 
-<style>
-.host-access-controls{margin:18px 0;padding:16px;border:1px solid #b9c9e5;border-radius:14px;background:#f3f6ff;color:#20365f}
-.camera-panel{margin:14px 0;padding:14px;border:1px solid #d3dced;border-radius:12px;background:#f4f7ff;color:#20365f}
-.camera-panel video{display:block;width:min(100%,320px);max-height:220px;object-fit:cover;border-radius:10px;background:#101827;margin:10px 0}
-.camera-panel small{display:block;color:#52627c}
-.warning-screen{padding:14px;border:2px solid #d38a22;background:#fff4d9;color:#633f00;border-radius:12px;font-weight:800}
-.eliminated-screen{padding:18px;border:2px solid #b51f35;background:#fff0f2;color:#8c1630;border-radius:12px;font-weight:900}
-.participant-locked nav{pointer-events:none;opacity:.45}
-.participant-locked nav button{cursor:not-allowed}
-.host-access-controls button{margin:4px}
-</style>
 </head>
 <body>
 <header class="vfstr-masthead">
@@ -784,9 +773,9 @@ main nav button:hover{
 <section id="host" class="view">
  <div id="hostLogin" class="card narrow"><h2>Host login</h2><p class="muted">Enter the private HOST_PIN configured on the server.</p><form id="loginForm"><div class="field"><label>Host PIN</label><input id="hostPin" type="password" autocomplete="current-password" required></div><button class="primary">Sign in as host</button></form></div>
  <div id="hostPanel" hidden>
-  <div class="card"><div class="row spread"><div><h2>Host dashboard</h2><p class="muted">This panel controls the shared live quiz.</p></div><div class="row"><button id="enableSound" type="button" aria-pressed="false">🔊 Mute sound</button><button class="danger" id="hostLogout">Log out</button><button class="primary" id="openBuzz">Reveal question / Start round</button><button class="danger" id="endTest">End Test</button><button id="closeBuzz">Close buzzer early</button><button class="gold" id="reveal">Reveal answer</button><button class="danger" id="nextQ">Next question</button></div></div>
+  <div class="card"><div class="row spread"><div><h2>Host dashboard</h2><p class="muted">This panel controls the shared live quiz.</p></div><div class="row"><button id="enableSound" type="button" aria-pressed="false">🔊 Mute sound</button><button class="danger" id="hostLogout">Log out</button><button class="primary" id="openBuzz">Reveal question / Start round</button><button id="closeBuzz">Close buzzer early</button><button class="gold" id="reveal">Reveal answer</button><button class="danger" id="nextQ">Next question</button></div></div>
    <div class="stats"><div><span>Teams</span><b id="teamCount">0</b></div><div><span>Questions</span><b id="questionCount">0</b></div><div><span>Buzzer</span><b id="buzzStatus">Closed</b></div><div><span>Round timer</span><b id="buzzerTimer">Waiting</b></div><div><span>Question</span><b id="questionNum">—</b></div></div>
-   <div class="host-access-controls"><h3>Participant access</h3><div class="row"><button type="button" id="toggleRegistration">Block new registrations</button><button type="button" id="toggleLiveAccess">Block live quiz access</button><button type="button" class="primary" id="openTeamRegistration">Open Team Registration</button></div><p class="muted">These controls independently manage registration and entry to the live quiz.</p><button type="button" class="danger" id="deleteAllQuestions">Delete All Questions</button></div><div id="hostCurrent" class="question-box"></div><h3>Accepted buzzes</h3><div id="hostBuzzes"></div><h3>Team answer submissions</h3><p class="muted">All registered teams may submit one option during the 15-second answer window. Teams that do not submit receive no points.</p><div id="hostAnswerPicks" class="answer-picks"></div>
+   <div id="hostCurrent" class="question-box"></div><h3>Accepted buzzes</h3><div id="hostBuzzes"></div><h3>Team answer submissions</h3><p class="muted">All registered teams may submit one option during the 15-second answer window. Teams that do not submit receive no points.</p><div id="hostAnswerPicks" class="answer-picks"></div>
   </div>
   <div class="grid2">
    <div class="card"><h2>Add / edit question</h2><form id="questionForm"><input type="hidden" id="qId"><div class="field"><label>Question</label><textarea id="qText" required></textarea></div>
@@ -795,7 +784,7 @@ main nav button:hover{
     <div class="row"><button class="primary">Save question</button><button type="button" id="clearQuestion">Clear</button></div></form></div>
    <div class="card"><h2>Question bank</h2><div class="row"><button id="exportQuestions">Export CSV</button><label class="file-button">Import CSV<input id="importQuestions" type="file" accept=".csv,text/csv" hidden></label></div><div id="questionBank"></div></div>
   </div>
-  <div class="card"><div class="row spread"><h2>Teams and private member details</h2><button id="exportTeams">Export teams CSV</button></div><div id="hostTeams"></div></div><div class="card"><div class="row spread"><h2>Eliminated participants &amp; violations</h2><button type="button" id="exportEliminated">Download violation report CSV</button></div><div id="hostViolations"></div></div>
+  <div class="card"><div class="row spread"><h2>Teams and private member details</h2><button id="exportTeams">Export teams CSV</button></div><div id="hostTeams"></div></div>
  </div>
 </section>
 <section id="register" class="view">
@@ -808,7 +797,7 @@ main nav button:hover{
 </section>
 <section id="buzzer" class="view">
  <div class="grid2">
-  <div class="card"><h2>Team buzzer</h2><div id="teamSession"></div><div id="participantWarning" class="notice warn" hidden aria-live="assertive"></div><div class="camera-panel"><div class="row spread"><b>Quiz integrity camera</b><span id="cameraStatus">Camera starts when a question appears</span></div><video id="participantCamera" autoplay muted playsinline></video><button type="button" id="enableCamera">Enable selfie camera</button><small>Camera analysis is performed in this browser. Camera permission is optional unless your event rules require it; camera failures are not violations.</small></div><div id="teamTimer" class="round-timer">Waiting</div><div id="buzzerQuestion" class="question-box"></div><button id="buzzButton" class="buzzer" disabled>BUZZ!</button><div id="buzzerMessage" class="notice">Register this device as a team's representative first.</div><div id="teamAnswerArea"></div></div>
+  <div class="card"><h2>Team buzzer</h2><div id="teamSession"></div><div id="teamTimer" class="round-timer">Waiting</div><div id="buzzerQuestion" class="question-box"></div><button id="buzzButton" class="buzzer" disabled>BUZZ!</button><div id="buzzerMessage" class="notice">Register this device as a team's representative first.</div><div id="teamAnswerArea"></div></div>
   <div class="card"><h2>Buzz order</h2><div id="buzzerOrder"></div></div>
  </div>
 </section>
@@ -844,5 +833,5 @@ function tryLogoFallback(img, kind){
   }
 }
 </script>
-<script src="/socket.io/socket.io.js"></script><script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script><script src="/app.js"></script>
+<script src="/socket.io/socket.io.js"></script><script src="/app.js"></script>
 </body></html>
