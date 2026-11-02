@@ -1032,6 +1032,21 @@ io.on('connection', socket => {
     broadcast();
   });
 
+  // ADMIT ALL TEAMS CURRENTLY WAITING IN THE LOBBY
+  socket.on('host:team:admit-all', () => {
+    if (!requireHost(socket)) return emitError(socket, 'Host login required.');
+    const waiting = db.prepare('SELECT id FROM teams WHERE admitted = 0').all();
+    if (!waiting.length) return emitError(socket, 'There are no teams waiting in the lobby.');
+    db.prepare('UPDATE teams SET admitted = 1 WHERE admitted = 0').run();
+    const admittedIds = new Set(waiting.map(team => team.id));
+    for (const client of io.sockets.sockets.values()) {
+      if (client.data.teamId && admittedIds.has(client.data.teamId)) {
+        client.emit('team:admitted', { teamId: client.data.teamId });
+      }
+    }
+    broadcast();
+  });
+
   // DELETE TEAM
   socket.on('host:team:delete', ({ teamId } = {}) => {
     if (!requireHost(socket)) {
