@@ -271,7 +271,28 @@ function broadcast() {
 }
 
 function requireHost(socket) {
-  return socket.data.isHost === true;
+  return socket.data.isHost === true &&
+    Boolean(socket.data.hostSessionTokenHash) &&
+    socket.data.hostSessionTokenHash === getSetting('host_session_token_hash', '');
+}
+
+function activateHostSession(socket, token) {
+  if (hostSocketId && hostSocketId !== socket.id) {
+    const old = io.sockets.sockets.get(hostSocketId);
+    if (old) {
+      old.data.isHost = false;
+      old.data.hostSessionTokenHash = '';
+      old.emit('host:session-replaced');
+    }
+  }
+
+  const tokenHash = hashToken(token);
+  setSetting('host_session_token_hash', tokenHash);
+  hostSocketId = socket.id;
+  socket.data.isHost = true;
+  socket.data.hostSessionTokenHash = tokenHash;
+  socket.emit('host:login-ok', { ...publicState(true), hostToken: token });
+  broadcast();
 }
 
 function emitError(socket, message) {
@@ -281,35 +302,32 @@ function emitError(socket, message) {
 io.on('connection', socket => {
   socket.emit('state', publicState(false));
 
-  // HOST LOGIN
+  // HOST LOGIN AND SESSION RESUME
   socket.on('host:login', ({ pin } = {}) => {
     if (typeof pin !== 'string' || pin !== HOST_PIN) {
       return emitError(socket, 'Incorrect host PIN.');
     }
-
-    if (hostSocketId && hostSocketId !== socket.id) {
-      const old = io.sockets.sockets.get(hostSocketId);
-
-      if (old) {
-        old.emit('app:error', {
-          message:
-            'Host dashboard opened in another browser. ' +
-            'This session is now the active host.'
-        });
-      }
-    }
-
-    hostSocketId = socket.id;
-    socket.data.isHost = true;
-
-    socket.emit('host:login-ok', publicState(true));
-    broadcast();
+    const token = crypto.randomBytes(32).toString('hex');
+    activateHostSession(socket, token);
   });
 
-  // HOST LOGOUT
+  socket.on('host:resume', ({ token } = {}) => {
+    const savedHash = getSetting('host_session_token_hash', '');
+    if (typeof token !== 'string' || !savedHash || hashToken(token) !== savedHash) {
+      socket.emit('host:resume-failed');
+      return;
+    }
+    activateHostSession(socket, token);
+  });
+
+  // Explicit logout invalidates the persistent session on the server.
   socket.on('host:logout', () => {
-    if (socket.id === hostSocketId) hostSocketId = null;
+    if (requireHost(socket)) {
+      setSetting('host_session_token_hash', '');
+      if (socket.id === hostSocketId) hostSocketId = null;
+    }
     socket.data.isHost = false;
+    socket.data.hostSessionTokenHash = '';
     socket.emit('host:logout-ok');
     broadcast();
   });
