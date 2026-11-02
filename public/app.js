@@ -1005,7 +1005,7 @@
 
 
   const connectionStatus = document.getElementById('connectionStatus');
-  let hostReconnectPending = false;
+  let hostReconnectPending = Boolean(hostSessionToken);
 
   function updateConnectionStatus(online) {
     if (!connectionStatus) return;
