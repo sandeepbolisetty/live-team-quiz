@@ -59,8 +59,6 @@ CREATE TABLE IF NOT EXISTS score_history (
 );
 `);
 
-db.exec("CREATE TABLE IF NOT EXISTS participant_flags (team_id TEXT PRIMARY KEY, warnings INTEGER NOT NULL DEFAULT 0, eliminated INTEGER NOT NULL DEFAULT 0, eliminated_at TEXT, elimination_reason TEXT); CREATE TABLE IF NOT EXISTS violation_log (id INTEGER PRIMARY KEY AUTOINCREMENT, team_id TEXT NOT NULL, question_id TEXT, kind TEXT NOT NULL, reason TEXT NOT NULL, warning_number INTEGER NOT NULL, created_at TEXT NOT NULL, FOREIGN KEY(team_id) REFERENCES teams(id) ON DELETE CASCADE);");
-
 const getSetting = (key, fallback) => {
   const row = db
     .prepare('SELECT value FROM settings WHERE key = ?')
@@ -84,9 +82,6 @@ if (!getSetting('room_code')) {
 if (!getSetting('current_index')) setSetting('current_index', '0');
 if (!getSetting('buzzer_open')) setSetting('buzzer_open', '0');
 if (!getSetting('revealed')) setSetting('revealed', '0');
-if (!getSetting('registration_allowed')) setSetting('registration_allowed', '1');
-if (!getSetting('live_access_allowed')) setSetting('live_access_allowed', '1');
-if (!getSetting('test_ended')) setSetting('test_ended', '0');
 
 let buzzes = [];
 let hostSocketId = null;
@@ -194,9 +189,6 @@ function allTeams(includePrivate = false) {
         memberCount: members.length,
         repIndex: t.rep_index,
         score: t.score,
-        warnings: Number((db.prepare('SELECT warnings FROM participant_flags WHERE team_id = ?').get(t.id) || {}).warnings || 0),
-        eliminated: Boolean((db.prepare('SELECT eliminated FROM participant_flags WHERE team_id = ?').get(t.id) || {}).eliminated),
-        eliminationReason: (db.prepare('SELECT elimination_reason FROM participant_flags WHERE team_id = ?').get(t.id) || {}).elimination_reason || '',
         createdAt: t.created_at
       };
     });
@@ -240,10 +232,6 @@ function publicState(forHost = false) {
     buzzerDeadline,
     answerModeOpen,
     revealed,
-    registrationAllowed: getSetting('registration_allowed', '1') === '1',
-    liveAccessAllowed: getSetting('live_access_allowed', '1') === '1',
-    testEnded: getSetting('test_ended', '0') === '1',
-    violations: forHost ? db.prepare('SELECT v.*, t.name AS team_name FROM violation_log v JOIN teams t ON t.id = v.team_id ORDER BY v.id DESC LIMIT 500').all() : [],
 
     teams: allTeams(forHost),
 
@@ -328,7 +316,6 @@ io.on('connection', socket => {
 
   // TEAM REGISTRATION
   socket.on('team:register', ({ name, members, repIndex } = {}) => {
-    if (getSetting('registration_allowed', '1') !== '1' || getSetting('test_ended', '0') === '1') return emitError(socket, 'Team registration is closed by the host.');
     if (
       typeof name !== 'string' ||
       !name.trim() ||
@@ -422,7 +409,6 @@ io.on('connection', socket => {
 
   // RESUME REGISTERED TEAM
   socket.on('team:resume', ({ teamId, token } = {}) => {
-    if (getSetting('live_access_allowed', '1') !== '1' || getSetting('test_ended', '0') === '1') return emitError(socket, 'The host has blocked live quiz access.');
     const team = db
       .prepare('SELECT id, name, token_hash FROM teams WHERE id = ?')
       .get(teamId);
@@ -434,8 +420,6 @@ io.on('connection', socket => {
       );
     }
 
-    const participantFlags = db.prepare('SELECT eliminated FROM participant_flags WHERE team_id = ?').get(team.id);
-    if (participantFlags && participantFlags.eliminated) return emitError(socket, 'This team has been eliminated from the quiz.');
     socket.data.teamId = team.id;
 
     socket.emit('team:resume-ok', {
@@ -456,9 +440,6 @@ io.on('connection', socket => {
         'Team authentication failed. Reopen the registration device.'
       );
     }
-
-    const participantFlags = db.prepare('SELECT eliminated FROM participant_flags WHERE team_id = ?').get(team.id);
-    if ((participantFlags && participantFlags.eliminated) || getSetting('live_access_allowed', '1') !== '1' || getSetting('test_ended', '0') === '1') return emitError(socket, 'Your team cannot buzz in this quiz.');
 
     if (getSetting('buzzer_open', '0') !== '1' || roundPhase !== 'buzzer' || !roundDeadline || Date.now() >= roundDeadline) {
       return emitError(socket, 'The 10-second buzzer window is closed.');
@@ -497,56 +478,6 @@ io.on('connection', socket => {
       order: entry.order
     });
 
-    broadcast();
-  });
-
-  // HOST ACCESS, END TEST AND MODERATION
-  socket.on('host:participants:set-access', ({ registrationAllowed, liveAccessAllowed } = {}) => {
-    if (!requireHost(socket)) return emitError(socket, 'Host login required.');
-    if (typeof registrationAllowed === 'boolean') setSetting('registration_allowed', registrationAllowed ? '1' : '0');
-    if (typeof liveAccessAllowed === 'boolean') setSetting('live_access_allowed', liveAccessAllowed ? '1' : '0');
-    broadcast();
-  });
-
-  socket.on('host:questions:delete-all', () => {
-    if (!requireHost(socket)) return emitError(socket, 'Host login required.');
-    db.prepare('DELETE FROM questions').run();
-    setSetting('current_index', '0'); setSetting('buzzer_open', '0'); setSetting('revealed', '0');
-    stopBuzzerTimer(); buzzes = []; teamAnswers = []; answerModeOpen = false;
-    questionVisible = false; roundPhase = 'hidden'; broadcast();
-  });
-
-  socket.on('host:quiz:end', () => {
-    if (!requireHost(socket)) return emitError(socket, 'Host login required.');
-    setSetting('test_ended', '1'); setSetting('buzzer_open', '0');
-    stopBuzzerTimer(); answerModeOpen = false; roundPhase = 'ended';
-    roundDeadline = null; questionVisible = false; broadcast();
-  });
-
-  socket.on('participant:violation', ({ teamId, token, kind } = {}) => {
-    const team = db.prepare('SELECT id, token_hash FROM teams WHERE id = ?').get(teamId);
-    if (!team || !token || hashToken(token) !== team.token_hash) return emitError(socket, 'Participant authentication failed.');
-    if (!['tab_switch', 'fullscreen_exit', 'restricted_navigation', 'mobile_phone'].includes(kind)) return;
-    if (getSetting('test_ended', '0') === '1') return;
-    const prior = db.prepare('SELECT created_at FROM violation_log WHERE team_id = ? AND kind = ? ORDER BY id DESC LIMIT 1').get(teamId, kind);
-    if (prior && Date.now() - new Date(prior.created_at).getTime() < 5000) return;
-    const flags = db.prepare('SELECT warnings, eliminated FROM participant_flags WHERE team_id = ?').get(teamId) || { warnings: 0, eliminated: 0 };
-    if (flags.eliminated) return;
-    const warningNumber = Number(flags.warnings || 0) + 1;
-    const reasonMap = {
-      tab_switch: 'Browser tab or window lost focus during an active question.',
-      fullscreen_exit: 'Fullscreen mode was exited during an active question.',
-      restricted_navigation: 'Attempted to navigate away from the quiz during the test.',
-      mobile_phone: 'A mobile phone was detected in the participant camera view during an active question.'
-    };
-    const reason = reasonMap[kind];
-    const eliminated = warningNumber >= 3;
-    const stamp = now();
-    db.prepare("INSERT INTO participant_flags(team_id,warnings,eliminated,eliminated_at,elimination_reason) VALUES(?,?,?,?,?) ON CONFLICT(team_id) DO UPDATE SET warnings=excluded.warnings,eliminated=excluded.eliminated,eliminated_at=excluded.eliminated_at,elimination_reason=excluded.elimination_reason").run(teamId, warningNumber, eliminated ? 1 : 0, eliminated ? stamp : null, eliminated ? reason : null);
-    db.prepare('INSERT INTO violation_log(team_id,question_id,kind,reason,warning_number,created_at) VALUES(?,?,?,?,?,?)').run(teamId, currentQuestion()?.id || null, kind, reason, warningNumber, stamp);
-    const result = { teamId, warningNumber, reason, eliminated, createdAt: stamp };
-    socket.emit('participant:violation-result', result);
-    if (eliminated) io.emit('participant:eliminated', result);
     broadcast();
   });
 
@@ -699,7 +630,6 @@ io.on('connection', socket => {
   // HOST REVEALS THE QUESTION; THEN A 45-SECOND ROUND RUNS AUTOMATICALLY
   socket.on('host:quiz:show-question', () => {
     if (!requireHost(socket)) return emitError(socket, 'Host login required.');
-    if (getSetting('test_ended', '0') === '1') return emitError(socket, 'The test has ended.');
     if (!currentQuestion()) return emitError(socket, 'Import or add questions first.');
     if (roundPhase !== 'hidden') return emitError(socket, 'Finish the current question before starting the next round.');
     stopBuzzerTimer();
@@ -718,7 +648,6 @@ io.on('connection', socket => {
   // Backwards-compatible event alias.
   socket.on('host:quiz:start-buzzer', () => {
     if (!requireHost(socket)) return emitError(socket, 'Host login required.');
-    if (getSetting('test_ended', '0') === '1') return emitError(socket, 'The test has ended.');
     if (roundPhase !== 'hidden') return emitError(socket, 'Finish the current question first.');
     if (!currentQuestion()) return emitError(socket, 'Import or add questions first.');
     stopBuzzerTimer();
@@ -745,8 +674,6 @@ io.on('connection', socket => {
   socket.on('team:answer:submit', ({ teamId, token, optionIndex } = {}) => {
     const team = db.prepare('SELECT id, token_hash FROM teams WHERE id = ?').get(teamId);
     if (!team || !token || hashToken(token) !== team.token_hash) return emitError(socket, 'Team authentication failed.');
-    const flags = db.prepare('SELECT eliminated FROM participant_flags WHERE team_id = ?').get(teamId);
-    if ((flags && flags.eliminated) || getSetting('live_access_allowed', '1') !== '1' || getSetting('test_ended', '0') === '1') return emitError(socket, 'Your team cannot submit answers.');
     if (roundPhase !== 'answering' || !answerModeOpen || !roundDeadline || Date.now() >= roundDeadline) return emitError(socket, 'The 15-second answer submission window is closed.');
     if (teamAnswers.some(answer => answer.teamId === team.id)) return emitError(socket, 'Your team has already submitted an answer.');
     const choice = Number(optionIndex);
@@ -856,7 +783,6 @@ io.on('connection', socket => {
       return emitError(socket, 'Host login required.');
     }
 
-    if (getSetting('test_ended', '0') === '1') return emitError(socket, 'The test has ended.');
     const questions = allQuestions();
 
     if (!questions.length) return;
