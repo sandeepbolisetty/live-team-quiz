@@ -310,23 +310,45 @@
   socket.on('team:violation:result', data => {
     if (!data) return;
     if (data.eliminated) {
-      participantEliminated = true;
-      monitoringStarted = false;
       alert('You have been eliminated from the quiz after 3 tab-switch violations. Reason: ' + data.reason);
-      $('teamSession').innerHTML = '<div class="notice warn"><b>Team eliminated</b><br>' + esc(data.teamName) + '<br>Reason: ' + esc(data.reason) + '</div>';
-      $('buzzButton').disabled = true;
-      $('teamAnswerArea').innerHTML = '';
+      lockEliminatedParticipant(data);
     } else {
       alert('Warning ' + data.count + ' of 2: You left the quiz page. A third violation will eliminate your team.');
     }
   });
 
-  socket.on('team:eliminated', data => {
+  function lockEliminatedParticipant(data = {}) {
     participantEliminated = true;
     monitoringStarted = false;
-    $('buzzButton').disabled = true;
+    quizEnded = true;
+    if (buzzerCountdownInterval) clearInterval(buzzerCountdownInterval);
+    ['buzzerQuestion', 'projectorQuestion'].forEach(id => { if ($(id)) $(id).innerHTML = '<div class="notice warn"><b>Access removed</b><p>Your team has been eliminated from this quiz.</p></div>'; });
+    ['teamAnswerArea', 'hostAnswerPicks'].forEach(id => { if ($(id)) $(id).innerHTML = ''; });
+    if ($('teamSession')) $('teamSession').innerHTML = '<div class="notice warn"><b>Team eliminated</b><br>' + esc(data.teamName || 'Your team') + '<br>Reason: ' + esc(data.reason || 'Three tab-switch violations.') + '</div>';
+    if ($('buzzButton')) $('buzzButton').disabled = true;
+    if ($('buzzerMessage')) $('buzzerMessage').textContent = 'Your team has been removed from this quiz.';
+    if ($('questionNum')) $('questionNum').textContent = '—';
+    if ($('teamTimer')) $('teamTimer').textContent = 'Eliminated';
+    view('buzzer');
+  }
+
+  socket.on('team:eliminated', data => lockEliminatedParticipant(data));
+
+  socket.on('quiz:session-reset', () => {
+    if (isHost) return;
+    monitoringStarted = false;
+    quizEnded = false;
+    participantEliminated = false;
+    teamId = '';
+    teamToken = '';
+    localStorage.removeItem(TEAM_ID_KEY);
+    localStorage.removeItem(TEAM_TOKEN_KEY);
+    $('teamSession').innerHTML = '<div class="notice warn">The host has reset the quiz session. Please register your team again.</div>';
     $('teamAnswerArea').innerHTML = '';
-    $('teamSession').innerHTML = '<div class="notice warn"><b>Team eliminated</b><br>' + esc(data?.teamName || 'Your team') + '<br>Reason: ' + esc(data?.reason || 'Three tab-switch violations.') + '</div>';
+    $('buzzerQuestion').innerHTML = '';
+    $('buzzButton').disabled = true;
+    view('home');
+    toast('Quiz session reset by the host. Register again to join.');
   });
 
   socket.on('quiz:ended', () => {
@@ -433,6 +455,7 @@
 
   function render(data) {
     if (!data) return;
+    if (participantEliminated) return;
 
     quizEnded = Boolean(data.quizEnded);
     monitoringStarted = Boolean(data.monitoringStarted) && !quizEnded && !participantEliminated;
