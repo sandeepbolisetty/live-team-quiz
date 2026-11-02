@@ -531,7 +531,7 @@ io.on('connection', socket => {
   });
 
   socket.on('team:violation', ({ teamId, token, reason } = {}) => {
-    const team = db.prepare('SELECT id, name, token_hash FROM teams WHERE id = ?').get(teamId);
+    const team = db.prepare('SELECT id, name, token_hash, admitted FROM teams WHERE id = ?').get(teamId);
     if (!team || !token || hashToken(token) !== team.token_hash) {
       return emitError(socket, 'Team authentication failed.');
     }
