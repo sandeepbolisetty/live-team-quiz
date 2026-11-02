@@ -11,7 +11,7 @@
   let lastWarningSecond = null;
   let toastTimer;
   let buzzerCountdownInterval = null;
-  let cameraStream = null, phoneDetector = null, cameraLoop = null, lastPhoneQuestion = null, cameraPromptedQuestion = null, tabViolationQuestion = null;
+  let cameraStream = null, phoneDetector = null, cameraLoop = null, lastPhoneQuestion = null, cameraPromptedQuestion = null, tabViolationQuestion = null, selectedAnswerIndex = null, fullscreenWasEntered = false;
 
   const TEAM_ID_KEY = 'liveQuizTeamId';
   const TEAM_TOKEN_KEY = 'liveQuizTeamToken';
@@ -555,18 +555,12 @@
         const phaseMessages = { reading: 'Read the question. The buzzer opens after 20 seconds.', buzzer: 'Buzzer is open. You can buzz now; answer submission starts after the buzzer window.', 'awaiting-reveal': 'Answer time is over. Wait for the host to reveal the result.' };
         answerArea.innerHTML = `<div class="notice">${phaseMessages[data.roundPhase] || 'Wait for the answer submission window.'}</div>`;
       } else {
-        answerArea.innerHTML = `
-          <div class="answer-pick"><h3>Submit your answer</h3><p>Choose one option and submit before the 15-second timer ends.</p>
-            <label class="field"><span>Choose an option</span><select id="teamAnswerChoice" required>
-              <option value="">Select A, B, C, or D…</option>
-              ${(question?.options || []).map((option, index) => `<option value="${index}">${'ABCD'[index]}. ${esc(option)}</option>`).join('')}
-            </select></label>
-            <button type="button" class="primary" id="submitTeamAnswer">Submit Answer</button></div>`;
+        answerArea.innerHTML = '<div class="answer-pick"><h3>Choose your answer</h3><p>Select one option below the question, then submit within 15 seconds.</p><div class="answer-picks">' + (question?.options || []).map((option,index) => '<button type="button" class="option ' + (selectedAnswerIndex === index ? 'correct' : '') + '" data-answer-option="' + index + '"><b>' + 'ABCD'[index] + '</b> ' + esc(option) + '</button>').join('') + '</div><button type="button" class="primary" id="submitTeamAnswer" ' + (selectedAnswerIndex === null ? 'disabled' : '') + '>Submit Answer</button></div>';
+        document.querySelectorAll('[data-answer-option]').forEach(button => button.addEventListener('click', () => { selectedAnswerIndex = Number(button.dataset.answerOption); render(latest); }));
         $('submitTeamAnswer').addEventListener('click', () => {
-          const choice = $('teamAnswerChoice').value;
-          if (choice === '') return toast('Select an option before submitting.');
+          if (selectedAnswerIndex === null) return toast('Select an option before submitting.');
           $('submitTeamAnswer').disabled = true;
-          socket.emit('team:answer:submit', { teamId, token: teamToken, optionIndex: Number(choice) });
+          socket.emit('team:answer:submit', { teamId, token: teamToken, optionIndex: selectedAnswerIndex });
         });
       }
     }
@@ -909,6 +903,7 @@
   }
   function stopCamera() { if (cameraLoop) clearTimeout(cameraLoop); cameraLoop=null; if (cameraStream) cameraStream.getTracks().forEach(t=>t.stop()); cameraStream=null; if ($('participantCamera')) $('participantCamera').srcObject=null; if ($('cameraStatus')) $('cameraStatus').textContent='Camera stopped'; }
   $('enableCamera').addEventListener('click', () => { if (latest && latest.questionVisible) { cameraPromptedQuestion=null; startCameraForQuestion(latest.currentIndex); } else toast('Camera starts when a question is displayed.'); });
+  document.addEventListener('fullscreenchange', () => { if (document.fullscreenElement) fullscreenWasEntered = true; else if (fullscreenWasEntered && teamId && latest && latest.questionVisible && !latest.testEnded) { fullscreenWasEntered = false; socket.emit('participant:violation',{teamId,token:teamToken,kind:'fullscreen_exit'}); } });
   document.addEventListener('visibilitychange', () => { if (document.hidden && teamId && latest && latest.questionVisible && !latest.testEnded && tabViolationQuestion !== latest.currentIndex) { tabViolationQuestion=latest.currentIndex; socket.emit('participant:violation',{teamId,token:teamToken,kind:'tab_switch'}); } });
   window.addEventListener('blur', () => { if (teamId && latest && latest.questionVisible && !latest.testEnded && tabViolationQuestion !== latest.currentIndex) { tabViolationQuestion=latest.currentIndex; socket.emit('participant:violation',{teamId,token:teamToken,kind:'tab_switch'}); } });
   socket.on('participant:violation-result', r => { const b=$('participantWarning'); b.hidden=false; b.className=r.eliminated?'eliminated-screen':'warning-screen'; b.textContent=r.eliminated?'ELIMINATED: '+r.reason:'WARNING '+r.warningNumber+' OF 2: '+r.reason; toast(b.textContent); if(r.eliminated){stopCamera();$('buzzButton').disabled=true;} });
