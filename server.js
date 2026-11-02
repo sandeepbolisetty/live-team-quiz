@@ -59,9 +59,6 @@ CREATE TABLE IF NOT EXISTS score_history (
 );
 `);
 
-const teamColumns = db.prepare('PRAGMA table_info(teams)').all().map(column => column.name);
-if (!teamColumns.includes('approval_status')) db.exec("ALTER TABLE teams ADD COLUMN approval_status TEXT NOT NULL DEFAULT 'accepted'");
-
 db.exec("CREATE TABLE IF NOT EXISTS participant_flags (team_id TEXT PRIMARY KEY, warnings INTEGER NOT NULL DEFAULT 0, eliminated INTEGER NOT NULL DEFAULT 0, eliminated_at TEXT, elimination_reason TEXT); CREATE TABLE IF NOT EXISTS violation_log (id INTEGER PRIMARY KEY AUTOINCREMENT, team_id TEXT NOT NULL, question_id TEXT, kind TEXT NOT NULL, reason TEXT NOT NULL, warning_number INTEGER NOT NULL, created_at TEXT NOT NULL, FOREIGN KEY(team_id) REFERENCES teams(id) ON DELETE CASCADE);");
 
 const getSetting = (key, fallback) => {
@@ -200,7 +197,6 @@ function allTeams(includePrivate = false) {
         warnings: Number((db.prepare('SELECT warnings FROM participant_flags WHERE team_id = ?').get(t.id) || {}).warnings || 0),
         eliminated: Boolean((db.prepare('SELECT eliminated FROM participant_flags WHERE team_id = ?').get(t.id) || {}).eliminated),
         eliminationReason: (db.prepare('SELECT elimination_reason FROM participant_flags WHERE team_id = ?').get(t.id) || {}).elimination_reason || '',
-        approvalStatus: t.approval_status || 'accepted',
         createdAt: t.created_at
       };
     });
@@ -395,9 +391,9 @@ io.on('connection', socket => {
       db.prepare(`
         INSERT INTO teams(
           id, name, members_json, rep_index,
-          token_hash, score, created_at, approval_status
+          token_hash, score, created_at
         )
-        VALUES(?, ?, ?, ?, ?, ?, ?, 'pending')
+        VALUES(?, ?, ?, ?, ?, ?, ?)
       `).run(
         teamId,
         name.trim(),
@@ -418,8 +414,7 @@ io.on('connection', socket => {
     socket.emit('team:registered', {
       teamId,
       token,
-      teamName: name.trim(),
-      approvalStatus: 'pending'
+      teamName: name.trim()
     });
 
     broadcast();
@@ -439,9 +434,6 @@ io.on('connection', socket => {
       );
     }
 
-    const approval = db.prepare('SELECT approval_status FROM teams WHERE id = ?').get(team.id)?.approval_status || 'accepted';
-    if (approval === 'pending') { socket.emit('team:approval-status', { status: 'pending', teamName: team.name }); return; }
-    if (approval === 'rejected') { socket.emit('team:approval-status', { status: 'rejected', teamName: team.name }); return; }
     const participantFlags = db.prepare('SELECT eliminated FROM participant_flags WHERE team_id = ?').get(team.id);
     if (participantFlags && participantFlags.eliminated) return emitError(socket, 'This team has been eliminated from the quiz.');
     socket.data.teamId = team.id;
@@ -465,9 +457,8 @@ io.on('connection', socket => {
       );
     }
 
-    const approval = db.prepare('SELECT approval_status FROM teams WHERE id = ?').get(team.id)?.approval_status || 'accepted';
     const participantFlags = db.prepare('SELECT eliminated FROM participant_flags WHERE team_id = ?').get(team.id);
-    if (approval !== 'accepted' || (participantFlags && participantFlags.eliminated) || getSetting('live_access_allowed', '1') !== '1' || getSetting('test_ended', '0') === '1') return emitError(socket, 'Your team must be accepted by the host before joining the quiz.');
+    if ((participantFlags && participantFlags.eliminated) || getSetting('live_access_allowed', '1') !== '1' || getSetting('test_ended', '0') === '1') return emitError(socket, 'Your team cannot buzz in this quiz.');
 
     if (getSetting('buzzer_open', '0') !== '1' || roundPhase !== 'buzzer' || !roundDeadline || Date.now() >= roundDeadline) {
       return emitError(socket, 'The 10-second buzzer window is closed.');
@@ -510,18 +501,6 @@ io.on('connection', socket => {
   });
 
   // HOST ACCESS, END TEST AND MODERATION
-  socket.on('host:team:approval', ({ teamId, decision } = {}) => {
-    if (!requireHost(socket)) return emitError(socket, 'Host login required.');
-    if (!['accepted', 'rejected'].includes(decision)) return emitError(socket, 'Choose accept or reject.');
-    const team = db.prepare('SELECT id, approval_status FROM teams WHERE id = ?').get(teamId);
-    if (!team) return emitError(socket, 'Team not found.');
-    if (team.approval_status !== 'pending') return emitError(socket, 'This team has already been reviewed.');
-    db.prepare('UPDATE teams SET approval_status = ? WHERE id = ?').run(decision, teamId);
-    const target = [...io.sockets.sockets.values()].find(client => client.data.teamId === teamId);
-    if (target) target.emit('team:approval-status', { status: decision, teamName: db.prepare('SELECT name FROM teams WHERE id = ?').get(teamId).name });
-    broadcast();
-  });
-
   socket.on('host:participants:set-access', ({ registrationAllowed, liveAccessAllowed } = {}) => {
     if (!requireHost(socket)) return emitError(socket, 'Host login required.');
     if (typeof registrationAllowed === 'boolean') setSetting('registration_allowed', registrationAllowed ? '1' : '0');
@@ -766,9 +745,8 @@ io.on('connection', socket => {
   socket.on('team:answer:submit', ({ teamId, token, optionIndex } = {}) => {
     const team = db.prepare('SELECT id, token_hash FROM teams WHERE id = ?').get(teamId);
     if (!team || !token || hashToken(token) !== team.token_hash) return emitError(socket, 'Team authentication failed.');
-    const approval = db.prepare('SELECT approval_status FROM teams WHERE id = ?').get(teamId)?.approval_status || 'accepted';
     const flags = db.prepare('SELECT eliminated FROM participant_flags WHERE team_id = ?').get(teamId);
-    if (approval !== 'accepted' || (flags && flags.eliminated) || getSetting('live_access_allowed', '1') !== '1' || getSetting('test_ended', '0') === '1') return emitError(socket, 'Your team must be accepted by the host before submitting answers.');
+    if ((flags && flags.eliminated) || getSetting('live_access_allowed', '1') !== '1' || getSetting('test_ended', '0') === '1') return emitError(socket, 'Your team cannot submit answers.');
     if (roundPhase !== 'answering' || !answerModeOpen || !roundDeadline || Date.now() >= roundDeadline) return emitError(socket, 'The 15-second answer submission window is closed.');
     if (teamAnswers.some(answer => answer.teamId === team.id)) return emitError(socket, 'Your team has already submitted an answer.');
     const choice = Number(optionIndex);
