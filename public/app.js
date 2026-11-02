@@ -46,6 +46,13 @@
     if (document.hidden) reportTabSwitch();
   });
 
+  window.addEventListener('beforeunload', event => {
+    if (!monitoringStarted || quizEnded || participantEliminated) return;
+    event.preventDefault();
+    event.returnValue = 'The quiz is still active. Leaving now may count as a violation.';
+    return event.returnValue;
+  });
+
   function esc(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({
       '&': '&amp;',
