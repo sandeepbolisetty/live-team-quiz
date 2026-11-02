@@ -20,6 +20,9 @@ fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 const db = new Database(DB_PATH);
 
 db.pragma('journal_mode = WAL');
+try { db.exec('ALTER TABLE teams ADD COLUMN admitted INTEGER NOT NULL DEFAULT 0'); } catch (error) {
+  if (!String(error.message).includes('duplicate column name')) throw error;
+}
 db.pragma('foreign_keys = ON');
 
 db.exec(`
@@ -35,7 +38,8 @@ CREATE TABLE IF NOT EXISTS teams (
   rep_index INTEGER NOT NULL DEFAULT 0,
   token_hash TEXT NOT NULL,
   score INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  admitted INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS questions (
@@ -207,6 +211,7 @@ function allTeams(includePrivate = false) {
         memberCount: members.length,
         repIndex: t.rep_index,
         score: t.score,
+        admitted: Boolean(t.admitted),
         createdAt: t.created_at
       };
     });
@@ -251,7 +256,7 @@ function publicState(forHost = false) {
     answerModeOpen,
     revealed,
 
-    teams: allTeams(forHost),
+    teams: forHost ? allTeams(true) : allTeams(false).filter(team => team.admitted),
 
     buzzes: buzzes.map(b => ({
       teamId: b.teamId,
@@ -470,7 +475,8 @@ io.on('connection', socket => {
     socket.emit('team:registered', {
       teamId,
       token,
-      teamName: name.trim()
+      teamName: name.trim(),
+      admitted: false
     });
 
     broadcast();
@@ -479,7 +485,7 @@ io.on('connection', socket => {
   // RESUME REGISTERED TEAM
   socket.on('team:resume', ({ teamId, token } = {}) => {
     const team = db
-      .prepare('SELECT id, name, token_hash FROM teams WHERE id = ?')
+      .prepare('SELECT id, name, token_hash, admitted FROM teams WHERE id = ?')
       .get(teamId);
 
     if (!team || !token || hashToken(token) !== team.token_hash) {
@@ -495,18 +501,20 @@ io.on('connection', socket => {
       return;
     }
 
-    socket.emit('team:resume-ok', {
+    socket.emit(team.admitted ? 'team:resume-ok' : 'team:lobby', {
       teamId: team.id,
-      teamName: team.name
+      teamName: team.name,
+      admitted: Boolean(team.admitted)
     });
   });
 
   // PARTICIPANT TAB-SWITCH MONITORING
   socket.on('team:monitoring:start', ({ teamId, token } = {}) => {
-    const team = db.prepare('SELECT id, name, token_hash FROM teams WHERE id = ?').get(teamId);
+    const team = db.prepare('SELECT id, name, token_hash, admitted FROM teams WHERE id = ?').get(teamId);
     if (!team || !token || hashToken(token) !== team.token_hash) {
       return emitError(socket, 'Team authentication failed. Reopen the registration device.');
     }
+    if (!team.admitted) { socket.emit('team:lobby', { teamId: team.id, teamName: team.name }); return; }
     if (getSetting('quiz_ended', '0') === '1') {
       socket.emit('quiz:ended');
       return;
@@ -526,6 +534,7 @@ io.on('connection', socket => {
     if (!team || !token || hashToken(token) !== team.token_hash) {
       return emitError(socket, 'Team authentication failed.');
     }
+    if (!team.admitted) return emitError(socket, 'Your team is waiting for host approval in the lobby.');
     if (getSetting('quiz_ended', '0') === '1' ||
         getSetting('quiz_monitoring_started', '0') !== '1') return;
     if (isTeamEliminated(team.id)) {
@@ -559,7 +568,7 @@ io.on('connection', socket => {
   // TEAM BUZZER: ANY REGISTERED TEAM MAY BUZZ DURING THE 10-SECOND WINDOW
   socket.on('team:buzz', ({ teamId, token } = {}) => {
     const team = db
-      .prepare('SELECT id, name, token_hash FROM teams WHERE id = ?')
+      .prepare('SELECT id, name, token_hash, admitted FROM teams WHERE id = ?')
       .get(teamId);
 
     if (!team || !token || hashToken(token) !== team.token_hash) {
@@ -818,6 +827,7 @@ io.on('connection', socket => {
   socket.on('team:answer:submit', ({ teamId, token, optionIndex } = {}) => {
     const team = db.prepare('SELECT id, token_hash FROM teams WHERE id = ?').get(teamId);
     if (!team || !token || hashToken(token) !== team.token_hash) return emitError(socket, 'Team authentication failed.');
+    if (!team.admitted) return emitError(socket, 'Your team is waiting for host approval in the lobby.');
     if (isTeamEliminated(team.id)) return emitError(socket, 'Your team has been eliminated from this quiz.');
     if (roundPhase !== 'answering' || !answerModeOpen || !roundDeadline || Date.now() >= roundDeadline) return emitError(socket, 'The 15-second answer submission window is closed.');
     if (teamAnswers.some(answer => answer.teamId === team.id)) return emitError(socket, 'Your team has already submitted an answer.');
@@ -990,6 +1000,17 @@ io.on('connection', socket => {
 
     setSetting('buzzer_open', '0');
 
+    broadcast();
+  });
+
+  // ADMIT TEAM FROM REGISTRATION LOBBY
+  socket.on('host:team:admit', ({ teamId } = {}) => {
+    if (!requireHost(socket)) return emitError(socket, 'Host login required.');
+    const result = db.prepare('UPDATE teams SET admitted = 1 WHERE id = ?').run(teamId);
+    if (!result.changes) return emitError(socket, 'Team not found in the lobby.');
+    for (const client of io.sockets.sockets.values()) {
+      if (client.data.teamId === teamId) client.emit('team:admitted', { teamId });
+    }
     broadcast();
   });
 
