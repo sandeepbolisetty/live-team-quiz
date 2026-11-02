@@ -456,6 +456,9 @@ io.on('connection', socket => {
       );
     }
 
+    const participantFlags = db.prepare('SELECT eliminated FROM participant_flags WHERE team_id = ?').get(team.id);
+    if ((participantFlags && participantFlags.eliminated) || getSetting('live_access_allowed', '1') !== '1' || getSetting('test_ended', '0') === '1') return emitError(socket, 'Your team cannot buzz in this quiz.');
+
     if (getSetting('buzzer_open', '0') !== '1' || roundPhase !== 'buzzer' || !roundDeadline || Date.now() >= roundDeadline) {
       return emitError(socket, 'The 10-second buzzer window is closed.');
     }
