@@ -784,13 +784,13 @@ main nav button:hover{
     <div class="row"><button class="primary">Save question</button><button type="button" id="clearQuestion">Clear</button></div></form></div>
    <div class="card"><h2>Question bank</h2><div class="row"><button id="exportQuestions">Export CSV</button><label class="file-button">Import CSV<input id="importQuestions" type="file" accept=".csv,text/csv" hidden></label></div><div id="questionBank"></div></div>
   </div>
-  <div class="card"><div class="row spread"><h2>Teams and private member details</h2><button id="exportTeams">Export teams CSV</button></div><div id="hostTeams"></div></div>
+  <div class="card"><div class="row spread"><h2>Team admission lobby and admitted teams</h2><button id="exportTeams">Export teams CSV</button></div><div id="hostTeams"></div></div>
   <div class="card"><div class="row spread"><h2>Participant integrity report</h2><button id="exportViolations">Download violations CSV</button></div><p class="muted">Each tab-switch warning and third-strike elimination is recorded with the team name, reason, and timestamp.</p><div id="hostViolations"></div></div>
  </div>
 </section>
 <section id="register" class="view">
  <div class="grid2">
-  <div class="card"><h2>Register your team</h2><p class="muted">Enter all members and choose the representative whose phone will be used to buzz.</p>
+  <div class="card"><h2>Register your team</h2><p class="muted">Enter all members and choose the representative whose phone will be used to buzz. After registration, wait in the lobby until the host admits your team.</p>
    <form id="registerForm"><div class="field"><label>Team name</label><input id="teamName" maxlength="50" required placeholder="e.g. Robo Rangers"></div><div class="field"><label>Team members</label><div id="members"></div><button type="button" id="addMember">+ Add member</button></div><div class="field"><label>Buzzer representative</label><select id="representative"></select></div><button class="primary">Register team</button></form><div id="registerResult"></div>
   </div>
   <div class="card"><h2>Teams registered</h2><p class="muted">Member details are private and are not displayed here.</p><div id="publicTeams"></div></div>

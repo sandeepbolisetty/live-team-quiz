@@ -14,6 +14,7 @@
   let monitoringStarted = false;
   let quizEnded = false;
   let participantEliminated = false;
+  let participantInLobby = false;
   let lastViolationSentAt = 0;
 
   const TEAM_ID_KEY = 'liveQuizTeamId';
@@ -23,6 +24,8 @@
 
   let teamId = localStorage.getItem(TEAM_ID_KEY) || '';
   let teamToken = localStorage.getItem(TEAM_TOKEN_KEY) || '';
+  // Until the server confirms admission on resume, keep returning teams in the lobby.
+  if (teamId && teamToken) participantInLobby = true;
 
   function startParticipantMonitoring() {
     if (!teamId || !teamToken || isHost || quizEnded || participantEliminated) return;
@@ -90,7 +93,7 @@
     if (name === 'host' && !isHost) {
       $('hostPin').focus();
     }
-    if (name === 'buzzer') startParticipantMonitoring();
+    if (name === 'buzzer' && (!teamId || !latest?.teams || latest.teams.some(team => team.id === teamId))) startParticipantMonitoring();
   }
 
   document.querySelectorAll('nav [data-view]').forEach(button => {
@@ -268,38 +271,47 @@
   });
 
   // Successful team registration.
+  function showLobby(teamName = 'Your team') {
+    participantInLobby = true;
+    monitoringStarted = false;
+    $('registerResult').innerHTML = '<div class="notice"><b>' + esc(teamName) + '</b> is registered and waiting in the lobby. The host must approve your team before you can enter the quiz.</div>';
+    $('teamSession').innerHTML = '<div class="notice"><b>' + esc(teamName) + '</b><br>Waiting for host approval. Please keep this page open.</div>';
+    $('buzzerQuestion').innerHTML = '<div class="notice">You are in the lobby. Questions will appear after the host admits your team.</div>';
+    $('teamAnswerArea').innerHTML = '';
+    $('buzzButton').disabled = true;
+    $('buzzerMessage').textContent = 'Waiting for host approval.';
+    view('buzzer');
+  }
+
   socket.on('team:registered', data => {
     teamId = data.teamId;
     teamToken = data.token;
-
     localStorage.setItem(TEAM_ID_KEY, teamId);
     localStorage.setItem(TEAM_TOKEN_KEY, teamToken);
+    showLobby(data.teamName);
+    socket.emit('team:resume', { teamId, token: teamToken });
+    toast('Team registered. Waiting for host approval.');
+  });
 
-    $('registerResult').innerHTML = `
-      <div class="notice">
-        Registered as <b>${esc(data.teamName)}</b>.
-        This browser is now the team's buzzer device.
-        Keep this browser storage.
-      </div>
-      <button type="button" class="primary" id="goBuzz">
-        Open team buzzer
-      </button>
-    `;
-
-    $('goBuzz').addEventListener('click', () => view('buzzer'));
-
-    socket.emit('team:resume', {
-      teamId,
-      token: teamToken
-    });
-
-    toast('Team registered.');
+  socket.on('team:lobby', data => {
+    teamId = data.teamId || teamId;
+    showLobby(data.teamName || 'Your team');
   });
 
   socket.on('team:resume-ok', data => {
     teamId = data.teamId;
+    participantInLobby = false;
     render(latest);
-    if ($('buzzer')?.classList.contains('active')) startParticipantMonitoring();
+    startParticipantMonitoring();
+  });
+
+  socket.on('team:admitted', data => {
+    if (data?.teamId !== teamId) return;
+    participantInLobby = false;
+    toast('Your team has been admitted. The quiz is ready.');
+    view('buzzer');
+    startParticipantMonitoring();
+    render(latest);
   });
 
   socket.on('team:monitoring:started', () => {
@@ -455,7 +467,7 @@
 
   function render(data) {
     if (!data) return;
-    if (participantEliminated) return;
+    if (participantEliminated || (!isHost && participantInLobby)) return;
 
     quizEnded = Boolean(data.quizEnded);
     monitoringStarted = Boolean(data.monitoringStarted) && !quizEnded && !participantEliminated;
@@ -535,39 +547,25 @@
       $('endTest').disabled = Boolean(data.quizEnded);
       $('endTest').textContent = data.quizEnded ? 'Test ended' : 'End Test';
 
-      $('hostTeams').innerHTML = teams.length
-        ? table(`
-          <thead>
-            <tr>
-              <th>Team</th>
-              <th>Members (private)</th>
-              <th>Representative</th>
-              <th>Score</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            ${teams.map(team => `
-              <tr>
-                <td><b>${esc(team.name)}</b></td>
-                <td>
-                  ${(team.members || []).map(member =>
-                    `${esc(member.name)} <span class="muted">(${esc(member.reg)})</span>`
-                  ).join('<br>')}
-                </td>
-                <td>${esc(team.members?.[team.repIndex]?.name || '—')}</td>
-                <td>${team.score}</td>
-                <td>
-                  <button class="danger" data-remove-team="${esc(team.id)}">
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        `)
-        : '<div class="empty">No teams registered yet.</div>';
+      const waitingTeams = teams.filter(team => !team.admitted);
+      const admittedTeams = teams.filter(team => team.admitted);
+      const teamRows = (items, waiting) => items.length ? table(`
+        <thead><tr><th>Team</th><th>Members (private)</th><th>Representative</th><th>Score</th><th>Action</th></tr></thead>
+        <tbody>${items.map(team => `
+          <tr>
+            <td><b>${esc(team.name)}</b></td>
+            <td>${(team.members || []).map(member => `${esc(member.name)} <span class="muted">(${esc(member.reg)})</span>`).join('<br>')}</td>
+            <td>${esc(team.members?.[team.repIndex]?.name || '—')}</td>
+            <td>${team.score}</td>
+            <td>${waiting ? `<button class="primary" data-admit-team="${esc(team.id)}">Admit to quiz</button>` : '<span class="badge">Admitted</span>'} <button class="danger" data-remove-team="${esc(team.id)}">Remove</button></td>
+          </tr>`).join('')}</tbody>`) : '<div class="empty">None.</div>';
+      $('hostTeams').innerHTML = `
+        <h3>Waiting lobby (${waitingTeams.length})</h3>${teamRows(waitingTeams, true)}
+        <h3>Admitted teams (${admittedTeams.length})</h3>${teamRows(admittedTeams, false)}
+      `;
+      document.querySelectorAll('[data-admit-team]').forEach(button => {
+        button.addEventListener('click', () => socket.emit('host:team:admit', { teamId: button.dataset.admitTeam }));
+      });
 
       const violationRows = data.violations || [];
       $('hostViolations').innerHTML = violationRows.length
