@@ -795,13 +795,13 @@ main nav button:hover{
     <div class="row"><button class="primary">Save question</button><button type="button" id="clearQuestion">Clear</button></div></form></div>
    <div class="card"><h2>Question bank</h2><div class="row"><button id="exportQuestions">Export CSV</button><label class="file-button">Import CSV<input id="importQuestions" type="file" accept=".csv,text/csv" hidden></label></div><div id="questionBank"></div></div>
   </div>
-  <div class="card"><div class="row spread"><h2>Team admission lobby</h2><span class="pill">Host approval required</span></div><p class="muted">New registrations wait here until you accept them. Rejected teams cannot enter the quiz.</p><div id="hostPendingTeams"></div></div><div class="card"><div class="row spread"><h2>Teams and private member details</h2><button id="exportTeams">Export teams CSV</button></div><div id="hostTeams"></div></div><div class="card"><div class="row spread"><h2>Eliminated participants &amp; violations</h2><button type="button" id="exportEliminated">Download violation report CSV</button></div><div id="hostViolations"></div></div>
+  <div class="card"><div class="row spread"><h2>Teams and private member details</h2><button id="exportTeams">Export teams CSV</button></div><div id="hostTeams"></div></div><div class="card"><div class="row spread"><h2>Eliminated participants &amp; violations</h2><button type="button" id="exportEliminated">Download violation report CSV</button></div><div id="hostViolations"></div></div>
  </div>
 </section>
 <section id="register" class="view">
  <div class="grid2">
   <div class="card"><h2>Register your team</h2><p class="muted">Enter all members and choose the representative whose phone will be used to buzz.</p>
-   <form id="registerForm"><div class="field"><label>Team name</label><input id="teamName" maxlength="50" required placeholder="e.g. Robo Rangers"></div><div class="field"><label>Team members</label><div id="members"></div><button type="button" id="addMember">+ Add member</button></div><div class="field"><label>Buzzer representative</label><select id="representative"></select></div><button class="primary">Register team</button></form><div id="registerResult" aria-live="polite"></div>
+   <form id="registerForm"><div class="field"><label>Team name</label><input id="teamName" maxlength="50" required placeholder="e.g. Robo Rangers"></div><div class="field"><label>Team members</label><div id="members"></div><button type="button" id="addMember">+ Add member</button></div><div class="field"><label>Buzzer representative</label><select id="representative"></select></div><button class="primary">Register team</button></form><div id="registerResult"></div>
   </div>
   <div class="card"><h2>Teams registered</h2><p class="muted">Member details are private and are not displayed here.</p><div id="publicTeams"></div></div>
  </div>
