@@ -57,6 +57,16 @@ CREATE TABLE IF NOT EXISTS score_history (
   created_at TEXT NOT NULL,
   FOREIGN KEY(team_id) REFERENCES teams(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS quiz_violations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  team_id TEXT NOT NULL,
+  team_name TEXT NOT NULL,
+  violation_number INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  eliminated INTEGER NOT NULL DEFAULT 0
+);
 `);
 
 const getSetting = (key, fallback) => {
@@ -82,6 +92,8 @@ if (!getSetting('room_code')) {
 if (!getSetting('current_index')) setSetting('current_index', '0');
 if (!getSetting('buzzer_open')) setSetting('buzzer_open', '0');
 if (!getSetting('revealed')) setSetting('revealed', '0');
+if (!getSetting('quiz_ended')) setSetting('quiz_ended', '0');
+if (!getSetting('quiz_monitoring_started')) setSetting('quiz_monitoring_started', '0');
 
 let buzzes = [];
 let hostSocketId = null;
@@ -159,6 +171,12 @@ const id = () => crypto.randomBytes(12).toString('hex');
 
 const hashToken = token =>
   crypto.createHash('sha256').update(token).digest('hex');
+
+function isTeamEliminated(teamId) {
+  return Boolean(db.prepare(
+    'SELECT 1 FROM quiz_violations WHERE team_id = ? AND eliminated = 1 LIMIT 1'
+  ).get(teamId));
+}
 
 function allQuestions() {
   return db
@@ -258,6 +276,15 @@ function publicState(forHost = false) {
           ORDER BY h.id DESC
           LIMIT 100
         `).all()
+      : [],
+    quizEnded: getSetting('quiz_ended', '0') === '1',
+    monitoringStarted: getSetting('quiz_monitoring_started', '0') === '1',
+    violations: forHost
+      ? db.prepare(`
+          SELECT id, team_id, team_name, violation_number, reason, created_at, eliminated
+          FROM quiz_violations
+          ORDER BY id DESC
+        `).all().map(item => ({ ...item, eliminated: Boolean(item.eliminated) }))
       : []
   };
 }
@@ -446,6 +473,57 @@ io.on('connection', socket => {
     });
   });
 
+  // PARTICIPANT TAB-SWITCH MONITORING
+  socket.on('team:monitoring:start', ({ teamId, token } = {}) => {
+    const team = db.prepare('SELECT id, name, token_hash FROM teams WHERE id = ?').get(teamId);
+    if (!team || !token || hashToken(token) !== team.token_hash) {
+      return emitError(socket, 'Team authentication failed. Reopen the registration device.');
+    }
+    if (getSetting('quiz_ended', '0') === '1') {
+      socket.emit('quiz:ended');
+      return;
+    }
+    if (isTeamEliminated(team.id)) {
+      socket.emit('team:eliminated', { teamName: team.name, reason: 'Three tab-switch violations.' });
+      return;
+    }
+    setSetting('quiz_monitoring_started', '1');
+    socket.data.teamId = team.id;
+    socket.emit('team:monitoring:started');
+    broadcast();
+  });
+
+  socket.on('team:violation', ({ teamId, token, reason } = {}) => {
+    const team = db.prepare('SELECT id, name, token_hash FROM teams WHERE id = ?').get(teamId);
+    if (!team || !token || hashToken(token) !== team.token_hash) {
+      return emitError(socket, 'Team authentication failed.');
+    }
+    if (getSetting('quiz_ended', '0') === '1' ||
+        getSetting('quiz_monitoring_started', '0') !== '1') return;
+    if (isTeamEliminated(team.id)) {
+      socket.emit('team:eliminated', { teamName: team.name, reason: 'Three tab-switch violations.' });
+      return;
+    }
+    const latestViolation = db.prepare(
+      'SELECT created_at FROM quiz_violations WHERE team_id = ? ORDER BY id DESC LIMIT 1'
+    ).get(team.id);
+    if (latestViolation && Date.now() - Date.parse(latestViolation.created_at) < 1800) return;
+    const count = db.prepare(
+      'SELECT COUNT(*) AS count FROM quiz_violations WHERE team_id = ?'
+    ).get(team.id).count;
+    const violationNumber = count + 1;
+    const eliminated = violationNumber >= 3;
+    const cleanReason = String(reason || 'Quiz tab became hidden or inactive.').slice(0, 240);
+    db.prepare(`
+      INSERT INTO quiz_violations(team_id, team_name, violation_number, reason, created_at, eliminated)
+      VALUES(?, ?, ?, ?, ?, ?)
+    `).run(team.id, team.name, violationNumber, cleanReason, now(), eliminated ? 1 : 0);
+    const result = { teamName: team.name, count: violationNumber, eliminated, reason: cleanReason };
+    socket.emit('team:violation:result', result);
+    if (eliminated) socket.emit('team:eliminated', result);
+    broadcast();
+  });
+
   // TEAM BUZZER: ANY REGISTERED TEAM MAY BUZZ DURING THE 10-SECOND WINDOW
   socket.on('team:buzz', ({ teamId, token } = {}) => {
     const team = db
@@ -458,6 +536,7 @@ io.on('connection', socket => {
         'Team authentication failed. Reopen the registration device.'
       );
     }
+    if (isTeamEliminated(team.id)) return emitError(socket, 'Your team has been eliminated from this quiz.');
 
     if (getSetting('buzzer_open', '0') !== '1' || roundPhase !== 'buzzer' || !roundDeadline || Date.now() >= roundDeadline) {
       return emitError(socket, 'The 10-second buzzer window is closed.');
@@ -645,9 +724,24 @@ io.on('connection', socket => {
     broadcast();
   });
 
+  // HOST ENDS THE TEST AND RELEASES PARTICIPANTS FROM TAB MONITORING
+  socket.on('host:quiz:end-test', () => {
+    if (!requireHost(socket)) return emitError(socket, 'Host login required.');
+    setSetting('quiz_ended', '1');
+    setSetting('buzzer_open', '0');
+    stopBuzzerTimer();
+    answerModeOpen = false;
+    questionVisible = false;
+    roundPhase = 'ended';
+    roundDeadline = null;
+    broadcast();
+    io.emit('quiz:ended');
+  });
+
   // HOST REVEALS THE QUESTION; THEN A 45-SECOND ROUND RUNS AUTOMATICALLY
   socket.on('host:quiz:show-question', () => {
     if (!requireHost(socket)) return emitError(socket, 'Host login required.');
+    if (getSetting('quiz_ended', '0') === '1') return emitError(socket, 'The test has ended.');
     if (!currentQuestion()) return emitError(socket, 'Import or add questions first.');
     if (roundPhase !== 'hidden') return emitError(socket, 'Finish the current question before starting the next round.');
     stopBuzzerTimer();
@@ -692,6 +786,7 @@ io.on('connection', socket => {
   socket.on('team:answer:submit', ({ teamId, token, optionIndex } = {}) => {
     const team = db.prepare('SELECT id, token_hash FROM teams WHERE id = ?').get(teamId);
     if (!team || !token || hashToken(token) !== team.token_hash) return emitError(socket, 'Team authentication failed.');
+    if (isTeamEliminated(team.id)) return emitError(socket, 'Your team has been eliminated from this quiz.');
     if (roundPhase !== 'answering' || !answerModeOpen || !roundDeadline || Date.now() >= roundDeadline) return emitError(socket, 'The 15-second answer submission window is closed.');
     if (teamAnswers.some(answer => answer.teamId === team.id)) return emitError(socket, 'Your team has already submitted an answer.');
     const choice = Number(optionIndex);
