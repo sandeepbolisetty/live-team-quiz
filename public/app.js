@@ -24,6 +24,8 @@
 
   let teamId = localStorage.getItem(TEAM_ID_KEY) || '';
   let teamToken = localStorage.getItem(TEAM_TOKEN_KEY) || '';
+  // Until the server confirms admission on resume, keep returning teams in the lobby.
+  if (teamId && teamToken) participantInLobby = true;
 
   function startParticipantMonitoring() {
     if (!teamId || !teamToken || isHost || quizEnded || participantEliminated) return;
