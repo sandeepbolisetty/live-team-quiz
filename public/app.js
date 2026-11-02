@@ -680,7 +680,7 @@
   // Host controls.
   $('toggleRegistration').addEventListener('click', () => { if (isHost && latest) socket.emit('host:participants:set-access', { registrationAllowed: !latest.registrationAllowed }); });
   $('toggleLiveAccess').addEventListener('click', () => { if (isHost && latest) socket.emit('host:participants:set-access', { liveAccessAllowed: !latest.liveAccessAllowed }); });
-  $('openTeamRegistration').addEventListener('click', () => { if (!isHost) return; view('register'); if (latest && !latest.registrationAllowed) toast('Team registration is closed. Use “Allow new registrations” first.'); else toast('Team registration page opened.'); });
+  $('openTeamRegistration').addEventListener('click', () => { if (!isHost) return; if (latest && !latest.registrationAllowed) { socket.emit('host:participants:set-access', { registrationAllowed: true }); toast('Reopening team registrations…'); } view('register'); });
   $('deleteAllQuestions').addEventListener('click', () => { if (isHost && confirm('Delete all questions? Teams and scores will remain.')) socket.emit('host:questions:delete-all'); });
   $('endTest').addEventListener('click', () => { if (isHost && confirm('End the test for everyone?')) socket.emit('host:quiz:end'); });
   $('exportEliminated').addEventListener('click', () => { if (!isHost || !latest) return; const rows = [['Team','Warning','Kind','Reason','Time']]; (latest.violations || []).forEach(v => rows.push([v.team_name,v.warning_number,v.kind,v.reason,v.created_at])); downloadCSV('quiz-violations.csv', rows); });
