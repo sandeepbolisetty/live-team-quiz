@@ -11,7 +11,6 @@
   let lastWarningSecond = null;
   let toastTimer;
   let buzzerCountdownInterval = null;
-  let cameraStream = null, phoneDetector = null, cameraLoop = null, lastPhoneQuestion = null, cameraPromptedQuestion = null, tabViolationQuestion = null, selectedAnswerIndex = null, fullscreenWasEntered = false, lastAnswerQuestion = null, phoneDetectionStreak = 0;
 
   const TEAM_ID_KEY = 'liveQuizTeamId';
   const TEAM_TOKEN_KEY = 'liveQuizTeamToken';
@@ -41,7 +40,6 @@
   }
 
   function view(name) {
-    if (teamId && !isHost && latest && !latest.testEnded && latest.liveAccessAllowed && name !== 'buzzer') { toast('Quiz is locked until the host ends the test.'); name = 'buzzer'; }
     document.querySelectorAll('.view').forEach(element => {
       element.classList.toggle('active', element.id === name);
     });
@@ -218,7 +216,10 @@
     toast('Team registered.');
   });
 
-  socket.on('team:resume-ok', data => { teamId = data.teamId; render(latest); if (latest && !latest.testEnded && latest.liveAccessAllowed) view('buzzer'); });
+  socket.on('team:resume-ok', data => {
+    teamId = data.teamId;
+    render(latest);
+  });
 
   socket.on('host:teams-export', teams => {
     const rows = [
@@ -323,7 +324,6 @@
     $('projectorRoom').textContent = 'ROOM: ' + data.roomCode;
 
     const teams = data.teams || [];
-    if (lastAnswerQuestion !== data.currentIndex) { selectedAnswerIndex = null; lastAnswerQuestion = data.currentIndex; phoneDetectionStreak = 0; }
     const question = data.currentQuestion;
     const buzzes = data.buzzes || [];
     const questions = data.questions || [];
@@ -357,10 +357,6 @@
       : '<div class="empty">No teams registered yet.</div>';
 
     $('teamCount').textContent = teams.length;
-    $('endTest').disabled = !!data.testEnded;
-    $('openBuzz').disabled = !!data.testEnded || data.roundPhase !== 'hidden';
-    $('toggleRegistration').textContent = data.registrationAllowed ? 'Block new registrations' : 'Allow new registrations';
-    $('toggleLiveAccess').textContent = data.liveAccessAllowed ? 'Block live quiz access' : 'Allow live quiz access';
     $('questionCount').textContent = data.questionCount ?? questions.length;
     $('buzzStatus').textContent = data.buzzerOpen ? 'OPEN' : 'Closed';
     if (buzzerCountdownInterval) clearInterval(buzzerCountdownInterval);
@@ -398,7 +394,6 @@
       $('reveal').disabled = Boolean(data.revealed) || data.roundPhase !== 'awaiting-reveal';
       $('reveal').textContent = data.revealed ? 'Answer revealed' : 'Reveal answer & award points';
 
-      $('hostViolations').innerHTML = (data.violations || []).length ? '<ul>' + data.violations.map(v => '<li><b>' + esc(v.team_name) + '</b> — warning ' + v.warning_number + '/3 — ' + esc(v.reason) + ' <small>' + esc(v.created_at) + '</small></li>').join('') + '</ul>' : '<div class="empty">No violations recorded.</div>';
       $('hostTeams').innerHTML = teams.length
         ? table(`
           <thead>
@@ -539,16 +534,10 @@
     $('buzzerOrder').innerHTML = renderBuzzes(buzzes);
 
     const myTeam = teams.find(team => team.id === teamId);
-    if ($('participantWarning') && myTeam) { $('participantWarning').hidden = !(myTeam.warnings || myTeam.eliminated); $('participantWarning').className = myTeam.eliminated ? 'eliminated-screen' : 'warning-screen'; $('participantWarning').textContent = myTeam.eliminated ? 'ELIMINATED — three quiz violations recorded.' : 'Warning ' + myTeam.warnings + ' of 2. A third confirmed violation eliminates this team.'; }
-    if (myTeam?.eliminated) { $('buzzButton').disabled = true; $('teamAnswerArea').innerHTML = '<div class="eliminated-screen">You have been eliminated from this quiz.</div>'; }
-    if (myTeam && !isHost && !data.testEnded && data.liveAccessAllowed) document.body.classList.add('participant-locked'); else document.body.classList.remove('participant-locked');
-    if (myTeam && data.questionVisible && !data.testEnded) startCameraForQuestion(data.currentIndex); else stopCamera();
     const myAnswer = (data.answers || []).find(answer => answer.teamId === teamId);
     const answerArea = $('teamAnswerArea');
     if (answerArea) {
-      if (myTeam?.eliminated) {
-        answerArea.innerHTML = '<div class="eliminated-screen">You have been eliminated from this quiz. Reason: ' + esc(myTeam.eliminationReason || 'Three rule violations recorded.') + '</div>';
-      } else if (!myTeam || !data.questionVisible) {
+      if (!myTeam || !data.questionVisible) {
         answerArea.innerHTML = '';
       } else if (data.revealed) {
         answerArea.innerHTML = `<div class="notice">Round complete. ${myAnswer?.isCorrect ? 'Correct answer — points awarded.' : 'No points for this question.'}</div>`;
@@ -558,12 +547,18 @@
         const phaseMessages = { reading: 'Read the question. The buzzer opens after 20 seconds.', buzzer: 'Buzzer is open. You can buzz now; answer submission starts after the buzzer window.', 'awaiting-reveal': 'Answer time is over. Wait for the host to reveal the result.' };
         answerArea.innerHTML = `<div class="notice">${phaseMessages[data.roundPhase] || 'Wait for the answer submission window.'}</div>`;
       } else {
-        answerArea.innerHTML = '<div class="answer-pick"><h3>Choose your answer</h3><p>Select one option below the question, then submit within 15 seconds.</p><div class="answer-picks">' + (question?.options || []).map((option,index) => '<button type="button" class="option ' + (selectedAnswerIndex === index ? 'correct' : '') + '" data-answer-option="' + index + '"><b>' + 'ABCD'[index] + '</b> ' + esc(option) + '</button>').join('') + '</div><button type="button" class="primary" id="submitTeamAnswer" ' + (selectedAnswerIndex === null ? 'disabled' : '') + '>Submit Answer</button></div>';
-        document.querySelectorAll('[data-answer-option]').forEach(button => button.addEventListener('click', () => { selectedAnswerIndex = Number(button.dataset.answerOption); render(latest); }));
+        answerArea.innerHTML = `
+          <div class="answer-pick"><h3>Submit your answer</h3><p>Choose one option and submit before the 15-second timer ends.</p>
+            <label class="field"><span>Choose an option</span><select id="teamAnswerChoice" required>
+              <option value="">Select A, B, C, or D…</option>
+              ${(question?.options || []).map((option, index) => `<option value="${index}">${'ABCD'[index]}. ${esc(option)}</option>`).join('')}
+            </select></label>
+            <button type="button" class="primary" id="submitTeamAnswer">Submit Answer</button></div>`;
         $('submitTeamAnswer').addEventListener('click', () => {
-          if (selectedAnswerIndex === null) return toast('Select an option before submitting.');
+          const choice = $('teamAnswerChoice').value;
+          if (choice === '') return toast('Select an option before submitting.');
           $('submitTeamAnswer').disabled = true;
-          socket.emit('team:answer:submit', { teamId, token: teamToken, optionIndex: selectedAnswerIndex });
+          socket.emit('team:answer:submit', { teamId, token: teamToken, optionIndex: Number(choice) });
         });
       }
     }
@@ -678,12 +673,6 @@
   }
 
   // Host controls.
-  $('toggleRegistration').addEventListener('click', () => { if (isHost && latest) socket.emit('host:participants:set-access', { registrationAllowed: !latest.registrationAllowed }); });
-  $('toggleLiveAccess').addEventListener('click', () => { if (isHost && latest) socket.emit('host:participants:set-access', { liveAccessAllowed: !latest.liveAccessAllowed }); });
-  $('openTeamRegistration').addEventListener('click', () => { if (!isHost) return; if (latest && !latest.registrationAllowed) { socket.emit('host:participants:set-access', { registrationAllowed: true }); toast('Reopening team registrations…'); } view('register'); });
-  $('deleteAllQuestions').addEventListener('click', () => { if (isHost && confirm('Delete all questions? Teams and scores will remain.')) socket.emit('host:questions:delete-all'); });
-  $('endTest').addEventListener('click', () => { if (isHost && confirm('End the test for everyone?')) socket.emit('host:quiz:end'); });
-  $('exportEliminated').addEventListener('click', () => { if (!isHost || !latest) return; const rows = [['Team','Warning','Kind','Reason','Time']]; (latest.violations || []).forEach(v => rows.push([v.team_name,v.warning_number,v.kind,v.reason,v.created_at])); downloadCSV('quiz-violations.csv', rows); });
   $('openBuzz').addEventListener('click', () => {
     socket.emit('host:quiz:show-question');
   });
@@ -889,29 +878,6 @@
     event.target.value = '';
   });
 
-  async function startCameraForQuestion(questionIndex) {
-    if (cameraStream || cameraPromptedQuestion === questionIndex) return;
-    cameraPromptedQuestion = questionIndex;
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('Camera unavailable');
-      cameraStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
-      $('participantCamera').srcObject = cameraStream; await $('participantCamera').play(); $('cameraStatus').textContent = 'Camera active · on-device analysis';
-      if (window.cocoSsd) { phoneDetector = phoneDetector || await window.cocoSsd.load(); detectPhone(questionIndex); }
-      else $('cameraStatus').textContent = 'Camera active · AI model unavailable';
-    } catch (_) { $('cameraStatus').textContent = 'Camera unavailable — not a violation'; toast('Camera unavailable. This is not a violation.'); }
-  }
-  async function detectPhone(questionIndex) {
-    if (!cameraStream || !phoneDetector || !latest || !latest.questionVisible || latest.currentIndex !== questionIndex || latest.testEnded) return;
-    try { const predictions = await phoneDetector.detect($('participantCamera')); if (predictions.some(p => p.class === 'cell phone' && p.score >= 0.78)) phoneDetectionStreak++; else phoneDetectionStreak = 0; if (phoneDetectionStreak >= 3 && lastPhoneQuestion !== questionIndex) { lastPhoneQuestion = questionIndex; phoneDetectionStreak = 0; socket.emit('participant:violation',{teamId,token:teamToken,kind:'mobile_phone'}); } } catch (_) {}
-    cameraLoop = setTimeout(() => detectPhone(questionIndex), 1400);
-  }
-  function stopCamera() { if (cameraLoop) clearTimeout(cameraLoop); cameraLoop=null; if (cameraStream) cameraStream.getTracks().forEach(t=>t.stop()); cameraStream=null; if ($('participantCamera')) $('participantCamera').srcObject=null; if ($('cameraStatus')) $('cameraStatus').textContent='Camera stopped'; }
-  $('enableCamera').addEventListener('click', () => { if (latest && latest.questionVisible) { cameraPromptedQuestion=null; startCameraForQuestion(latest.currentIndex); } else toast('Camera starts when a question is displayed.'); });
-  document.addEventListener('fullscreenchange', () => { if (document.fullscreenElement) fullscreenWasEntered = true; else if (fullscreenWasEntered && teamId && latest && latest.questionVisible && !latest.testEnded) { fullscreenWasEntered = false; socket.emit('participant:violation',{teamId,token:teamToken,kind:'fullscreen_exit'}); } });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && teamId && latest && latest.questionVisible && !latest.testEnded && tabViolationQuestion !== latest.currentIndex) { tabViolationQuestion=latest.currentIndex; socket.emit('participant:violation',{teamId,token:teamToken,kind:'tab_switch'}); } });
-  window.addEventListener('blur', () => { if (teamId && latest && latest.questionVisible && !latest.testEnded && tabViolationQuestion !== latest.currentIndex) { tabViolationQuestion=latest.currentIndex; socket.emit('participant:violation',{teamId,token:teamToken,kind:'tab_switch'}); } });
-  socket.on('participant:violation-result', r => { const b=$('participantWarning'); b.hidden=false; b.className=r.eliminated?'eliminated-screen':'warning-screen'; b.textContent=r.eliminated?'ELIMINATED: '+r.reason:'WARNING '+r.warningNumber+' OF 2: '+r.reason; toast(b.textContent); if(r.eliminated){stopCamera();$('buzzButton').disabled=true;} });
-  socket.on('participant:eliminated', r => { if(r.teamId===teamId){stopCamera();$('buzzButton').disabled=true;$('teamAnswerArea').textContent='You have been eliminated. Reason: '+r.reason;} });
   // Team buzzer.
   $('buzzButton').addEventListener('click', () => {
     if (!teamId || !teamToken) {
