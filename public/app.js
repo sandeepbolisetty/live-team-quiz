@@ -560,9 +560,18 @@
             <td>${waiting ? `<button class="primary" data-admit-team="${esc(team.id)}">Admit to quiz</button>` : '<span class="badge">Admitted</span>'} <button class="danger" data-remove-team="${esc(team.id)}">Remove</button></td>
           </tr>`).join('')}</tbody>`) : '<div class="empty">None.</div>';
       $('hostTeams').innerHTML = `
-        <h3>Waiting lobby (${waitingTeams.length})</h3>${teamRows(waitingTeams, true)}
+        <div class="row spread">
+          <h3>Waiting lobby (${waitingTeams.length})</h3>
+          <button type="button" class="primary" id="admitAllTeams" ${waitingTeams.length ? '' : 'disabled'}>Admit All Teams</button>
+        </div>
+        ${teamRows(waitingTeams, true)}
         <h3>Admitted teams (${admittedTeams.length})</h3>${teamRows(admittedTeams, false)}
       `;
+      $('admitAllTeams')?.addEventListener('click', () => {
+        if (!waitingTeams.length) return;
+        if (!confirm('Admit all ' + waitingTeams.length + ' waiting teams to the quiz?')) return;
+        socket.emit('host:team:admit-all');
+      });
       document.querySelectorAll('[data-admit-team]').forEach(button => {
         button.addEventListener('click', () => socket.emit('host:team:admit', { teamId: button.dataset.admitTeam }));
       });
