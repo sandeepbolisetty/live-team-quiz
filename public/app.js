@@ -232,8 +232,13 @@
   });
 
   socket.on('state', data => {
-    latest = data;
-    render(data);
+    // Public state intentionally omits the violation history. Once authenticated,
+    // the host must only use host:state so public updates cannot replace the
+    // complete host snapshot (and make earlier records disappear from the report).
+    if (!isHost) {
+      latest = data;
+      render(data);
+    }
   });
 
   socket.on('host:state', data => {
