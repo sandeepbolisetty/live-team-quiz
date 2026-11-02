@@ -14,6 +14,7 @@
   let monitoringStarted = false;
   let quizEnded = false;
   let participantEliminated = false;
+  let participantInLobby = false;
   let lastViolationSentAt = 0;
 
   const TEAM_ID_KEY = 'liveQuizTeamId';
@@ -269,6 +270,7 @@
 
   // Successful team registration.
   function showLobby(teamName = 'Your team') {
+    participantInLobby = true;
     monitoringStarted = false;
     $('registerResult').innerHTML = '<div class="notice"><b>' + esc(teamName) + '</b> is registered and waiting in the lobby. The host must approve your team before you can enter the quiz.</div>';
     $('teamSession').innerHTML = '<div class="notice"><b>' + esc(teamName) + '</b><br>Waiting for host approval. Please keep this page open.</div>';
@@ -296,12 +298,14 @@
 
   socket.on('team:resume-ok', data => {
     teamId = data.teamId;
+    participantInLobby = false;
     render(latest);
     startParticipantMonitoring();
   });
 
   socket.on('team:admitted', data => {
     if (data?.teamId !== teamId) return;
+    participantInLobby = false;
     toast('Your team has been admitted. The quiz is ready.');
     view('buzzer');
     startParticipantMonitoring();
@@ -461,7 +465,7 @@
 
   function render(data) {
     if (!data) return;
-    if (participantEliminated) return;
+    if (participantEliminated || (!isHost && participantInLobby)) return;
 
     quizEnded = Boolean(data.quizEnded);
     monitoringStarted = Boolean(data.monitoringStarted) && !quizEnded && !participantEliminated;
