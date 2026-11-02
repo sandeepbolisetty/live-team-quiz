@@ -161,6 +161,9 @@
   socket.on('state', data => {
     latest = data;
     render(data);
+    const ownTeam = teamId && (data.teams || []).find(team => team.id === teamId);
+    if (ownTeam?.approvalStatus === 'accepted' && !window.__teamResumeRequested) { window.__teamResumeRequested = true; socket.emit('team:resume', { teamId, token: teamToken }); }
+    if (ownTeam?.approvalStatus === 'rejected') showRegistrationStatus('rejected', ownTeam.name);
   });
 
   socket.on('host:state', data => {
@@ -197,27 +200,15 @@
     localStorage.setItem(TEAM_ID_KEY, teamId);
     localStorage.setItem(TEAM_TOKEN_KEY, teamToken);
 
-    $('registerResult').innerHTML = `
-      <div class="notice">
-        Registered as <b>${esc(data.teamName)}</b>.
-        This browser is now the team's buzzer device.
-        Keep this browser storage.
-      </div>
-      <button type="button" class="primary" id="goBuzz">
-        Open team buzzer
-      </button>
-    `;
-
-    $('goBuzz').addEventListener('click', () => view('buzzer'));
-
-    socket.emit('team:resume', {
-      teamId,
-      token: teamToken
-    });
-
-    toast('Team registered.');
+    showRegistrationStatus('pending', data.teamName);
+    toast('Registration submitted. Waiting for host approval.');
   });
 
+  socket.on('team:approval-status', data => {
+    showRegistrationStatus(data.status, data.teamName);
+    if (data.status === 'accepted') { window.__teamResumeRequested = true; socket.emit('team:resume', { teamId, token: teamToken }); toast('Host accepted your team. You can now join the quiz.'); }
+    else if (data.status === 'rejected') toast('The host rejected this registration.');
+  });
   socket.on('team:resume-ok', data => { teamId = data.teamId; render(latest); if (latest && !latest.testEnded && latest.liveAccessAllowed) view('buzzer'); });
 
   socket.on('host:teams-export', teams => {
@@ -399,6 +390,8 @@
       $('reveal').textContent = data.revealed ? 'Answer revealed' : 'Reveal answer & award points';
 
       $('hostViolations').innerHTML = (data.violations || []).length ? '<ul>' + data.violations.map(v => '<li><b>' + esc(v.team_name) + '</b> — warning ' + v.warning_number + '/3 — ' + esc(v.reason) + ' <small>' + esc(v.created_at) + '</small></li>').join('') + '</ul>' : '<div class="empty">No violations recorded.</div>';
+      const pendingTeams = teams.filter(team => team.approvalStatus === 'pending');
+      $('hostPendingTeams').innerHTML = pendingTeams.length ? table(`<thead><tr><th>Team</th><th>Members</th><th>Representative</th><th>Decision</th></tr></thead><tbody>${pendingTeams.map(team => `<tr><td><b>${esc(team.name)}</b></td><td>${(team.members || []).map(member => `${esc(member.name)} (${esc(member.reg)})`).join('<br>')}</td><td>${esc(team.members?.[team.repIndex]?.name || '—')}</td><td><button class="primary" data-team-approval="accepted" data-team-id="${esc(team.id)}">Accept</button> <button class="danger" data-team-approval="rejected" data-team-id="${esc(team.id)}">Reject</button></td></tr>`).join('')}</tbody>`) : '<div class="empty">No teams waiting for approval.</div>';
       $('hostTeams').innerHTML = teams.length
         ? table(`
           <thead>
@@ -407,6 +400,7 @@
               <th>Members (private)</th>
               <th>Representative</th>
               <th>Score</th>
+              <th>Admission</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -422,6 +416,7 @@
                 </td>
                 <td>${esc(team.members?.[team.repIndex]?.name || '—')}</td>
                 <td>${team.score}</td>
+                <td><span class="badge">${esc(team.approvalStatus || 'accepted')}</span></td>
                 <td>
                   <button class="danger" data-remove-team="${esc(team.id)}">
                     Remove
@@ -678,6 +673,10 @@
   }
 
   // Host controls.
+  $('hostPendingTeams').addEventListener('click', event => {
+    const button = event.target.closest('[data-team-approval]');
+    if (button && isHost) socket.emit('host:team:approval', { teamId: button.dataset.teamId, decision: button.dataset.teamApproval });
+  });
   $('toggleRegistration').addEventListener('click', () => { if (isHost && latest) socket.emit('host:participants:set-access', { registrationAllowed: !latest.registrationAllowed }); });
   $('toggleLiveAccess').addEventListener('click', () => { if (isHost && latest) socket.emit('host:participants:set-access', { liveAccessAllowed: !latest.liveAccessAllowed }); });
   $('openTeamRegistration').addEventListener('click', () => { if (!isHost) return; view('register'); if (latest && !latest.registrationAllowed) toast('Team registration is closed. Use “Allow new registrations” first.'); else toast('Team registration page opened.'); });
@@ -925,6 +924,12 @@
   });
 
   // Team registration form.
+  function showRegistrationStatus(status, teamName) {
+    const messages = { pending: `Registration received for ${esc(teamName)}. Please wait in the lobby. The host must accept your team before you can enter the quiz.`, accepted: `Your team ${esc(teamName)} has been accepted. You may now enter the quiz.`, rejected: `Your registration for ${esc(teamName)} was rejected by the host. Please contact the event host.` };
+    $('registerResult').innerHTML = `<div class="notice ${status === 'rejected' ? 'warn' : ''}"><b>${status === 'pending' ? 'WAITING FOR HOST APPROVAL' : status === 'accepted' ? 'TEAM ACCEPTED' : 'REGISTRATION REJECTED'}</b><p>${messages[status] || messages.pending}</p></div>${status === 'accepted' ? '<button type="button" class="primary" id="goBuzz">Enter team quiz</button>' : ''}`;
+    const go = $('goBuzz'); if (go) go.addEventListener('click', () => view('buzzer'));
+  }
+
   let memberRows = [];
 
   function renderMemberRows(preserve = true) {
@@ -1086,6 +1091,7 @@
 
   $('registerForm').addEventListener('submit', event => {
     event.preventDefault();
+    if (teamId && teamToken) return toast('This device already has a team registration.');
 
     const members = [...document.querySelectorAll('.member-row')].map(row => ({
       name: row.querySelector('.mname').value.trim(),
@@ -1103,6 +1109,7 @@
 
   // Restore this team's representative session after refresh.
   if (teamId && teamToken) {
+    window.__teamResumeRequested = true;
     socket.emit('team:resume', {
       teamId,
       token: teamToken
