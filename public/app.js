@@ -11,6 +11,10 @@
   let lastWarningSecond = null;
   let toastTimer;
   let buzzerCountdownInterval = null;
+  let monitoringStarted = false;
+  let quizEnded = false;
+  let participantEliminated = false;
+  let lastViolationSentAt = 0;
 
   const TEAM_ID_KEY = 'liveQuizTeamId';
   const TEAM_TOKEN_KEY = 'liveQuizTeamToken';
@@ -19,6 +23,28 @@
 
   let teamId = localStorage.getItem(TEAM_ID_KEY) || '';
   let teamToken = localStorage.getItem(TEAM_TOKEN_KEY) || '';
+
+  function startParticipantMonitoring() {
+    if (!teamId || !teamToken || isHost || quizEnded || participantEliminated) return;
+    monitoringStarted = true;
+    socket.emit('team:monitoring:start', { teamId, token: teamToken });
+  }
+
+  function reportTabSwitch() {
+    if (!monitoringStarted || quizEnded || participantEliminated || !teamId || !teamToken) return;
+    const currentTime = Date.now();
+    if (currentTime - lastViolationSentAt < 1800) return;
+    lastViolationSentAt = currentTime;
+    socket.emit('team:violation', {
+      teamId,
+      token: teamToken,
+      reason: 'Participant switched away from the quiz tab or minimized the quiz page.'
+    });
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) reportTabSwitch();
+  });
 
   function esc(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -42,6 +68,10 @@
   }
 
   function view(name) {
+    if (monitoringStarted && !quizEnded && !isHost && teamId && name !== 'buzzer') {
+      toast('The quiz is active. Stay on the quiz page until the host ends the test.');
+      return;
+    }
     document.querySelectorAll('.view').forEach(element => {
       element.classList.toggle('active', element.id === name);
     });
@@ -53,6 +83,7 @@
     if (name === 'host' && !isHost) {
       $('hostPin').focus();
     }
+    if (name === 'buzzer') startParticipantMonitoring();
   }
 
   document.querySelectorAll('nav [data-view]').forEach(button => {
@@ -256,6 +287,40 @@
   socket.on('team:resume-ok', data => {
     teamId = data.teamId;
     render(latest);
+    if ($('buzzer')?.classList.contains('active')) startParticipantMonitoring();
+  });
+
+  socket.on('team:monitoring:started', () => {
+    monitoringStarted = true;
+    toast('Quiz monitoring is active. Stay on this page until the host ends the test.');
+  });
+
+  socket.on('team:violation:result', data => {
+    if (!data) return;
+    if (data.eliminated) {
+      participantEliminated = true;
+      monitoringStarted = false;
+      alert('You have been eliminated from the quiz after 3 tab-switch violations. Reason: ' + data.reason);
+      $('teamSession').innerHTML = '<div class="notice warn"><b>Team eliminated</b><br>' + esc(data.teamName) + '<br>Reason: ' + esc(data.reason) + '</div>';
+      $('buzzButton').disabled = true;
+      $('teamAnswerArea').innerHTML = '';
+    } else {
+      alert('Warning ' + data.count + ' of 2: You left the quiz page. A third violation will eliminate your team.');
+    }
+  });
+
+  socket.on('team:eliminated', data => {
+    participantEliminated = true;
+    monitoringStarted = false;
+    $('buzzButton').disabled = true;
+    $('teamAnswerArea').innerHTML = '';
+    $('teamSession').innerHTML = '<div class="notice warn"><b>Team eliminated</b><br>' + esc(data?.teamName || 'Your team') + '<br>Reason: ' + esc(data?.reason || 'Three tab-switch violations.') + '</div>';
+  });
+
+  socket.on('quiz:ended', () => {
+    quizEnded = true;
+    monitoringStarted = false;
+    toast('The host has ended the test. You may now leave the quiz page.');
   });
 
   socket.on('host:teams-export', teams => {
@@ -357,6 +422,8 @@
   function render(data) {
     if (!data) return;
 
+    quizEnded = Boolean(data.quizEnded);
+    monitoringStarted = Boolean(data.monitoringStarted) && !quizEnded && !participantEliminated;
     $('roomCode').textContent = 'ROOM: ' + data.roomCode;
     $('projectorRoom').textContent = 'ROOM: ' + data.roomCode;
 
@@ -397,7 +464,7 @@
     $('questionCount').textContent = data.questionCount ?? questions.length;
     $('buzzStatus').textContent = data.buzzerOpen ? 'OPEN' : 'Closed';
     if (buzzerCountdownInterval) clearInterval(buzzerCountdownInterval);
-    const phaseLabels = { hidden: 'Waiting', reading: 'Read question', buzzer: 'Buzz now', answering: 'Submit answer', 'awaiting-reveal': 'Time up', revealed: 'Complete' };
+    const phaseLabels = { hidden: 'Waiting', reading: 'Read question', buzzer: 'Buzz now', answering: 'Submit answer', 'awaiting-reveal': 'Time up', revealed: 'Complete', ended: 'Test ended' };
     const updateRoundCountdown = () => {
       const remaining = data.roundDeadline ? Math.max(0, Math.ceil((data.roundDeadline - Date.now()) / 1000)) : 0;
       const value = data.roundDeadline ? `${phaseLabels[data.roundPhase] || 'Round'}: ${remaining}s` : (phaseLabels[data.roundPhase] || 'Waiting');
@@ -430,6 +497,8 @@
       $('closeBuzz').disabled = data.roundPhase !== 'buzzer';
       $('reveal').disabled = Boolean(data.revealed) || data.roundPhase !== 'awaiting-reveal';
       $('reveal').textContent = data.revealed ? 'Answer revealed' : 'Reveal answer & award points';
+      $('endTest').disabled = Boolean(data.quizEnded);
+      $('endTest').textContent = data.quizEnded ? 'Test ended' : 'End Test';
 
       $('hostTeams').innerHTML = teams.length
         ? table(`
@@ -464,6 +533,22 @@
           </tbody>
         `)
         : '<div class="empty">No teams registered yet.</div>';
+
+      const violationRows = data.violations || [];
+      $('hostViolations').innerHTML = violationRows.length
+        ? table(`
+          <thead><tr><th>Team</th><th>Violation</th><th>Reason</th><th>Status</th><th>Time</th></tr></thead>
+          <tbody>${violationRows.map(item => `
+            <tr>
+              <td><b>${esc(item.team_name)}</b></td>
+              <td>${item.violation_number} of 3</td>
+              <td>${esc(item.reason)}</td>
+              <td><span class="badge ${item.eliminated ? 'red' : 'warn'}">${item.eliminated ? 'Eliminated' : 'Warning'}</span></td>
+              <td>${esc(item.created_at)}</td>
+            </tr>
+          `).join('')}</tbody>
+        `)
+        : '<div class="empty">No tab-switch warnings or eliminations recorded.</div>';
 
       document.querySelectorAll('[data-remove-team]').forEach(button => {
         button.addEventListener('click', () => {
@@ -716,6 +801,29 @@
 
   $('closeBuzz').addEventListener('click', () => {
     socket.emit('host:quiz:close-buzzer');
+  });
+
+  $('endTest').addEventListener('click', () => {
+    if (!isHost) return toast('Host login required.');
+    if (confirm('End the quiz now? This releases participants from tab monitoring and stops the current round.')) {
+      socket.emit('host:quiz:end-test');
+    }
+  });
+
+  $('exportViolations').addEventListener('click', () => {
+    if (!isHost || !latest) return toast('Host login required.');
+    const rows = [
+      ['Team name', 'Violation number', 'Reason', 'Status', 'Timestamp'],
+      ...(latest.violations || []).map(item => [
+        item.team_name,
+        item.violation_number,
+        item.reason,
+        item.eliminated ? 'Eliminated' : 'Warning',
+        item.created_at
+      ])
+    ];
+    downloadCSV('quiz-tab-switch-violations.csv', rows);
+    toast('Participant violation report downloaded.');
   });
 
   $('reveal').addEventListener('click', () => {
@@ -1112,4 +1220,5 @@
       token: teamToken
     });
   }
+  if (window.location.pathname === '/buzzer' && teamId && teamToken) view('buzzer');
 })();
