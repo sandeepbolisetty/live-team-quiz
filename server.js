@@ -20,9 +20,6 @@ fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 const db = new Database(DB_PATH);
 
 db.pragma('journal_mode = WAL');
-try { db.exec('ALTER TABLE teams ADD COLUMN admitted INTEGER NOT NULL DEFAULT 0'); } catch (error) {
-  if (!String(error.message).includes('duplicate column name')) throw error;
-}
 db.pragma('foreign_keys = ON');
 
 db.exec(`
@@ -72,6 +69,10 @@ CREATE TABLE IF NOT EXISTS quiz_violations (
   eliminated INTEGER NOT NULL DEFAULT 0
 );
 `);
+
+try { db.exec('ALTER TABLE teams ADD COLUMN admitted INTEGER NOT NULL DEFAULT 0'); } catch (error) {
+  if (!String(error.message).includes('duplicate column name')) throw error;
+}
 
 const getSetting = (key, fallback) => {
   const row = db
