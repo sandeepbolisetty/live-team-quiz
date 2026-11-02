@@ -290,11 +290,15 @@ function publicState(forHost = false) {
 }
 
 function broadcast() {
-  io.emit('state', publicState(false));
-
-  if (hostSocketId) {
-    io.to(hostSocketId).emit('host:state', publicState(true));
+  const state = publicState(false);
+  for (const client of io.sockets.sockets.values()) {
+    if (client.data.teamId && isTeamEliminated(client.data.teamId)) {
+      client.emit('state', { ...state, questions: [], questionCount: 0, currentQuestion: null, questionVisible: false, buzzerOpen: false, buzzes: [], answers: [] });
+    } else {
+      client.emit('state', state);
+    }
   }
+  if (hostSocketId) io.to(hostSocketId).emit('host:state', publicState(true));
 }
 
 function requireHost(socket) {
@@ -350,8 +354,27 @@ io.on('connection', socket => {
   // Explicit logout invalidates the persistent session on the server.
   socket.on('host:logout', () => {
     if (requireHost(socket)) {
+      // Explicit host logout starts a clean quiz session but preserves the question bank.
+      stopBuzzerTimer();
+      if (roundTimer) clearTimeout(roundTimer);
+      roundTimer = null;
       setSetting('host_session_token_hash', '');
+      setSetting('current_index', '0');
+      setSetting('buzzer_open', '0');
+      setSetting('revealed', '0');
+      setSetting('quiz_ended', '0');
+      setSetting('quiz_monitoring_started', '0');
+      buzzes = [];
+      teamAnswers = [];
+      answerModeOpen = false;
+      questionVisible = false;
+      roundPhase = 'hidden';
+      roundDeadline = null;
+      buzzerDeadline = null;
+      db.prepare('DELETE FROM teams').run();
+      db.prepare('DELETE FROM quiz_violations').run();
       if (socket.id === hostSocketId) hostSocketId = null;
+      io.emit('quiz:session-reset');
     }
     socket.data.isHost = false;
     socket.data.hostSessionTokenHash = '';
@@ -443,6 +466,7 @@ io.on('connection', socket => {
       return emitError(socket, 'Could not register team.');
     }
 
+    socket.data.teamId = teamId;
     socket.emit('team:registered', {
       teamId,
       token,
@@ -466,6 +490,10 @@ io.on('connection', socket => {
     }
 
     socket.data.teamId = team.id;
+    if (isTeamEliminated(team.id)) {
+      socket.emit('team:eliminated', { teamName: team.name, reason: 'Three tab-switch violations.' });
+      return;
+    }
 
     socket.emit('team:resume-ok', {
       teamId: team.id,
@@ -520,7 +548,11 @@ io.on('connection', socket => {
     `).run(team.id, team.name, violationNumber, cleanReason, now(), eliminated ? 1 : 0);
     const result = { teamName: team.name, count: violationNumber, eliminated, reason: cleanReason };
     socket.emit('team:violation:result', result);
-    if (eliminated) socket.emit('team:eliminated', result);
+    if (eliminated) {
+      for (const client of io.sockets.sockets.values()) {
+        if (client.data.teamId === team.id) client.emit('team:eliminated', result);
+      }
+    }
     broadcast();
   });
 
