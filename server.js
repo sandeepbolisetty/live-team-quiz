@@ -577,6 +577,7 @@ io.on('connection', socket => {
         'Team authentication failed. Reopen the registration device.'
       );
     }
+    if (!team.admitted) return emitError(socket, 'Your team is waiting for host approval in the lobby.');
     if (isTeamEliminated(team.id)) return emitError(socket, 'Your team has been eliminated from this quiz.');
 
     if (getSetting('buzzer_open', '0') !== '1' || roundPhase !== 'buzzer' || !roundDeadline || Date.now() >= roundDeadline) {
@@ -825,7 +826,7 @@ io.on('connection', socket => {
 
   // Every registered team may submit one answer during the 15-second window.
   socket.on('team:answer:submit', ({ teamId, token, optionIndex } = {}) => {
-    const team = db.prepare('SELECT id, token_hash FROM teams WHERE id = ?').get(teamId);
+    const team = db.prepare('SELECT id, token_hash, admitted FROM teams WHERE id = ?').get(teamId);
     if (!team || !token || hashToken(token) !== team.token_hash) return emitError(socket, 'Team authentication failed.');
     if (!team.admitted) return emitError(socket, 'Your team is waiting for host approval in the lobby.');
     if (isTeamEliminated(team.id)) return emitError(socket, 'Your team has been eliminated from this quiz.');
