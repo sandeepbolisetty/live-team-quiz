@@ -156,7 +156,7 @@
 
   // Host logout.
   $('hostLogout').addEventListener('click', () => {
-    if (!confirm('Log out of the host dashboard?')) return;
+    if (!confirm('Log out and reset this quiz session? All registered teams, scores, and violation records will be cleared. Your question bank will be kept, and no question will remain published.')) return;
     socket.emit('host:logout');
   });
 
