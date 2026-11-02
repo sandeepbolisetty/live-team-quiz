@@ -298,8 +298,24 @@ function publicState(forHost = false) {
 function broadcast() {
   const state = publicState(false);
   for (const client of io.sockets.sockets.values()) {
-    if (client.data.teamId && isTeamEliminated(client.data.teamId)) {
-      client.emit('state', { ...state, teams: (state.teams || []).filter(team => team.id !== client.data.teamId), questions: [], questionCount: 0, currentQuestion: null, questionVisible: false, buzzerOpen: false, buzzes: [], answers: [] });
+    const participantTeam = client.data.teamId
+      ? db.prepare('SELECT admitted FROM teams WHERE id = ?').get(client.data.teamId)
+      : null;
+    const blockedFromQuiz = client.data.teamId &&
+      (!participantTeam || !participantTeam.admitted || isTeamEliminated(client.data.teamId));
+    if (blockedFromQuiz) {
+      client.emit('state', {
+        ...state,
+        teams: (state.teams || []).filter(team => team.id !== client.data.teamId),
+        questions: [],
+        questionCount: 0,
+        currentQuestion: null,
+        questionVisible: false,
+        buzzerOpen: false,
+        roundPhase: 'hidden',
+        buzzes: [],
+        answers: []
+      });
     } else {
       client.emit('state', state);
     }
