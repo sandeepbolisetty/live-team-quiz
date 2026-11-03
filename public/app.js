@@ -19,6 +19,9 @@
   let participantEliminated = false;
   let participantInLobby = false;
   let lastViolationSentAt = 0;
+  let participantCameraStream = null;
+  let cameraScanTimer = null;
+  let cameraScanBusy = false;
 
   const TEAM_ID_KEY = 'liveQuizTeamId';
   const TEAM_TOKEN_KEY = 'liveQuizTeamToken';
@@ -35,6 +38,66 @@
     monitoringStarted = true;
     socket.emit('team:monitoring:start', { teamId, token: teamToken });
   }
+
+  async function enableParticipantCamera() {
+    if (participantCameraStream) return true;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast('Camera access requires a supported browser and HTTPS.');
+      return false;
+    }
+    try {
+      participantCameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false
+      });
+      const video = $('participantCameraPreview');
+      if (video) {
+        video.srcObject = participantCameraStream;
+        await video.play().catch(() => {});
+      }
+      $('cameraStatus').textContent = 'Camera enabled — snapshots are checked only while a question is visible.';
+      $('enableCamera').textContent = 'Camera enabled';
+      $('enableCamera').disabled = true;
+      startCameraScanning();
+      participantCameraStream.getVideoTracks()[0]?.addEventListener('ended', () => {
+        participantCameraStream = null;
+        stopCameraScanning();
+        $('cameraStatus').textContent = 'Camera stopped. Enable it again to continue monitoring.';
+        $('enableCamera').disabled = false;
+        $('enableCamera').textContent = 'Enable camera';
+      });
+      return true;
+    } catch (error) {
+      $('cameraStatus').textContent = 'Camera permission was not granted. Enable camera access to continue.';
+      toast('Camera permission is required for the camera-monitoring feature.');
+      return false;
+    }
+  }
+
+  function startCameraScanning() {
+    if (cameraScanTimer) clearInterval(cameraScanTimer);
+    cameraScanTimer = setInterval(() => {
+      if (!participantCameraStream || !monitoringStarted || quizEnded || participantEliminated ||
+          !latest?.questionVisible || cameraScanBusy || document.hidden) return;
+      const video = $('participantCameraPreview');
+      if (!video || video.readyState < 2 || !video.videoWidth) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = 320;
+      canvas.height = 240;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      const image = canvas.toDataURL('image/jpeg', 0.5);
+      cameraScanBusy = true;
+      socket.emit('team:camera:frame', { teamId, token: teamToken, image });
+      setTimeout(() => { cameraScanBusy = false; }, 1800);
+    }, 2500);
+  }
+
+  function stopCameraScanning() {
+    if (cameraScanTimer) clearInterval(cameraScanTimer);
+    cameraScanTimer = null;
+  }
+
+  $('enableCamera')?.addEventListener('click', enableParticipantCamera);
 
   function reportTabSwitch() {
     if (!monitoringStarted || quizEnded || participantEliminated || !teamId || !teamToken) return;
@@ -332,7 +395,22 @@
 
   socket.on('team:monitoring:started', () => {
     monitoringStarted = true;
+    if (!participantCameraStream) $('cameraStatus').textContent = 'Camera is not enabled on this device. Tap Enable camera.';
     toast('Quiz monitoring is active. Stay on this page until the host ends the test.');
+  });
+
+  socket.on('team:camera:result', data => {
+    if (!data) return;
+    if (data.eliminated) {
+      alert('Your team has been eliminated after 3 camera-detection warnings. Detection can be mistaken; contact the host if this is an error.');
+      lockEliminatedParticipant(data);
+    } else {
+      alert('Camera warning ' + data.count + ' of 2: a possible mobile phone was detected in the camera view. A third warning will eliminate your team. If this is a false detection, adjust the camera view and inform the host.');
+    }
+  });
+
+  socket.on('team:camera:status', data => {
+    if (data?.message) $('cameraStatus').textContent = data.message;
   });
 
   socket.on('team:violation:result', data => {
@@ -347,6 +425,9 @@
 
   function lockEliminatedParticipant(data = {}) {
     participantEliminated = true;
+    stopCameraScanning();
+    if (participantCameraStream) participantCameraStream.getTracks().forEach(track => track.stop());
+    participantCameraStream = null;
     monitoringStarted = false;
     quizEnded = true;
     if (buzzerCountdownInterval) clearInterval(buzzerCountdownInterval);
@@ -1281,8 +1362,14 @@
     renderMemberRows(false);
   });
 
-  $('registerForm').addEventListener('submit', event => {
+  $('registerForm').addEventListener('submit', async event => {
     event.preventDefault();
+
+    if (!$('cameraConsent').checked) {
+      toast('Please read and accept the camera-monitoring consent to register.');
+      return;
+    }
+    if (!(await enableParticipantCamera())) return;
 
     const members = [...document.querySelectorAll('.member-row')].map(row => ({
       name: row.querySelector('.mname').value.trim(),
