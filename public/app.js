@@ -100,6 +100,19 @@
     button.addEventListener('click', () => view(button.dataset.view));
   });
 
+  $('projectorFullscreen')?.addEventListener('click', async () => {
+    try {
+      if (!document.fullscreenElement) await $('projector').requestFullscreen();
+      else await document.exitFullscreen();
+    } catch (error) {
+      toast('Full-screen mode is unavailable in this browser.');
+    }
+  });
+  document.addEventListener('fullscreenchange', () => {
+    const button = $('projectorFullscreen');
+    if (button) button.textContent = document.fullscreenElement ? '✕ EXIT FULL SCREEN' : '⛶ FULL SCREEN';
+  });
+
   document.querySelectorAll('[data-go]').forEach(button => {
     button.addEventListener('click', () => view(button.dataset.go));
   });
