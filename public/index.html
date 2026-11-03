@@ -805,6 +805,29 @@ main nav button:hover{
 }
 </style>
 
+
+<style>
+#projector.view.active{padding:12px clamp(12px,2.2vw,30px)}
+.live-stage{min-height:calc(100vh - 105px);padding:clamp(20px,3.1vw,46px);border-radius:28px;background:radial-gradient(ellipse at 10% 0%,rgba(16,185,170,.24),transparent 34%),radial-gradient(ellipse at 95% 8%,rgba(67,115,255,.24),transparent 34%),linear-gradient(145deg,#06142d 0%,#08152b 52%,#10132f 100%);border-color:rgba(95,226,218,.35)}
+.stage-brand{font-size:clamp(.7rem,1vw,.92rem);letter-spacing:.16em}
+.stage-top-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.stage-fullscreen-btn{border:1px solid rgba(113,225,219,.42)!important;background:rgba(24,184,169,.14)!important;color:#a9fff2!important;border-radius:999px!important;padding:10px 15px!important;font-size:.72rem!important;font-weight:900!important;letter-spacing:.08em;white-space:nowrap}
+.stage-fullscreen-btn:hover{background:rgba(24,184,169,.28)!important;transform:translateY(-1px)}
+.stage-status-row{margin:clamp(24px,4vw,48px) 0 24px}
+.stage-phase{font-size:clamp(.72rem,1vw,.9rem);padding:11px 16px}
+.stage-question-panel{min-height:330px;display:flex;flex-direction:column;justify-content:center}
+.stage-question-box .question-title{font-size:clamp(2rem,3.5vw,3.7rem)!important;line-height:1.18!important}
+.stage-question-box .option{min-height:72px;font-size:clamp(1rem,1.45vw,1.25rem)!important}
+.stage-side-panel{border-color:rgba(76,190,255,.32);box-shadow:inset 0 0 35px rgba(38,110,190,.08)}
+.stage-timer-ring{transition:background .2s linear}
+.stage-timer-inner strong{font-size:clamp(3.1rem,5.5vw,5rem)}
+.stage-buzz-panel{min-height:145px}
+.stage-buzzes li{font-size:clamp(.95rem,1.2vw,1.12rem);padding:14px 16px}
+#projector:fullscreen{background:#050d1d;overflow:auto}
+#projector:fullscreen .live-stage{min-height:100vh;border-radius:0;padding:clamp(24px,4vw,64px)}
+@media(max-width:600px){.stage-topline{align-items:flex-start;flex-direction:column}.stage-top-actions{width:100%;justify-content:space-between}.stage-fullscreen-btn{padding:8px 11px!important}.stage-question-panel{min-height:240px}}
+</style>
+
 </head>
 <body>
 <header class="vfstr-masthead">
@@ -873,7 +896,7 @@ main nav button:hover{
 </section>
 <section id="projector" class="view">
  <div class="live-stage">
-  <div class="stage-topline"><div class="stage-brand"><span class="live-dot"></span> VIGNAN LIVE QUIZ <span class="stage-divider">/</span> PROJECTOR MODE</div><span id="projectorRoom" class="stage-room">ROOM: —</span></div>
+  <div class="stage-topline"><div class="stage-brand"><span class="live-dot"></span> VIGNAN LIVE QUIZ <span class="stage-divider">/</span> PROJECTOR MODE <span class="stage-live-tag projector-live-label">● LIVE DISPLAY</span></div><div class="stage-top-actions"><span id="projectorRoom" class="stage-room">ROOM: —</span><button type="button" id="projectorFullscreen" class="stage-fullscreen-btn">⛶ FULL SCREEN</button></div></div>
   <div class="stage-status-row"><span id="stagePhaseBadge" class="stage-phase"><span class="stage-status-dot"></span> WAITING FOR HOST</span><span id="stageQuestionCount" class="stage-question-count">QUESTION —</span></div>
   <div class="stage-main-grid">
    <div class="stage-question-panel"><div class="stage-overline">CURRENT CHALLENGE</div><div id="projectorQuestion" class="question-box stage-question-box"></div></div>
