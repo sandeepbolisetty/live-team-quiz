@@ -411,7 +411,6 @@
       <div class="row">
         <span class="badge">${esc(question.category || 'General')}</span>
         <span class="badge">${question.points || 10} points</span>
-        ${host ? `<span class="badge">${question.time || 30} sec</span>` : ''}
       </div>
 
       <div class="question-title">${esc(question.text)}</div>
@@ -852,7 +851,6 @@
     $('qCorrect').value = question.correct;
     $('qPoints').value = question.points;
     $('qCategory').value = question.category;
-    $('qTime').value = question.time;
 
     view('host');
     $('qText').focus();
@@ -943,7 +941,6 @@
     $('qId').value = '';
     $('qPoints').value = 10;
     $('qCategory').value = 'General';
-    $('qTime').value = 30;
   }
 
   $('clearQuestion').addEventListener('click', clearQuestionForm);
@@ -967,7 +964,6 @@
       correct: Number($('qCorrect').value),
       points: Number($('qPoints').value),
       category: $('qCategory').value,
-      time: Number($('qTime').value)
     });
 
     clearQuestionForm();
@@ -999,14 +995,13 @@
     }
 
     downloadCSV('quiz-questions.csv', [
-      ['Question', 'A', 'B', 'C', 'D', 'Correct', 'Points', 'Category', 'Time'],
+      ['Question', 'A', 'B', 'C', 'D', 'Correct', 'Points', 'Category'],
       ...latest.questions.map(question => [
         question.text,
         ...question.options,
         'ABCD'[question.correct],
         question.points,
-        question.category,
-        question.time
+        question.category
       ])
     ]);
   });
@@ -1077,7 +1072,6 @@
         ),
         points: Number(row[6]) || 10,
         category: row[7] || 'General',
-        time: Number(row[8]) || 30
       });
 
       count++;
