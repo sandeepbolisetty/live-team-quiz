@@ -4,6 +4,8 @@
   const $ = id => document.getElementById(id);
 
   let latest = null;
+  let selectedTeamAnswer = '';
+  let selectedAnswerQuestionKey = '';
   let isHost = false;
   let audioCtx = null;
   let soundMuted = localStorage.getItem('liveQuizSoundMuted') === '1';
@@ -725,6 +727,7 @@
     const myTeam = teams.find(team => team.id === teamId);
     const myAnswer = (data.answers || []).find(answer => answer.teamId === teamId);
     const answerArea = $('teamAnswerArea');
+    if (answerArea && answerArea.parentElement !== $('buzzerQuestion')) $('buzzerQuestion').appendChild(answerArea);
     if (answerArea) {
       if (!myTeam || !data.questionVisible) {
         answerArea.innerHTML = '';
@@ -736,18 +739,32 @@
         const phaseMessages = { reading: 'Read the question. The buzzer opens after 20 seconds.', buzzer: 'Buzzer is open. You can buzz now; answer submission starts after the buzzer window.', 'awaiting-reveal': 'Answer time is over. Wait for the host to reveal the result.' };
         answerArea.innerHTML = `<div class="notice">${phaseMessages[data.roundPhase] || 'Wait for the answer submission window.'}</div>`;
       } else {
+        const answerKey = String(question?.id ?? data.currentIndex ?? question?.text ?? '');
+        if (answerKey !== selectedAnswerQuestionKey) { selectedAnswerQuestionKey = answerKey; selectedTeamAnswer = ''; }
         answerArea.innerHTML = `
-          <div class="answer-pick"><h3>Submit your answer</h3><p>Choose one option and submit before the 15-second timer ends.</p>
-            <label class="field"><span>Choose an option</span><select id="teamAnswerChoice" required>
-              <option value="">Select A, B, C, or D…</option>
-              ${(question?.options || []).map((option, index) => `<option value="${index}">${'ABCD'[index]}. ${esc(option)}</option>`).join('')}
-            </select></label>
-            <button type="button" class="primary" id="submitTeamAnswer">Submit Answer</button></div>`;
+          <div class="inline-answer-panel">
+            <h3>Choose your answer</h3>
+            <p>Select one option below and submit before the 15-second timer ends.</p>
+            <div class="inline-answer-options">
+              ${(question?.options || []).map((option, index) => `
+                <label class="inline-answer-option ${selectedTeamAnswer === String(index) ? 'selected' : ''}">
+                  <input type="radio" name="teamAnswerChoice" value="${index}" ${selectedTeamAnswer === String(index) ? 'checked' : ''}>
+                  <b>${'ABCD'[index]}</b><span>${esc(option)}</span>
+                </label>
+              `).join('')}
+            </div>
+            <button type="button" class="primary" id="submitTeamAnswer" ${selectedTeamAnswer === '' ? 'disabled' : ''}>Submit Answer</button>
+          </div>`;
+        answerArea.querySelectorAll('input[name="teamAnswerChoice"]').forEach(input => input.addEventListener('change', () => {
+          selectedTeamAnswer = input.value;
+          answerArea.querySelectorAll('.inline-answer-option').forEach(option => option.classList.toggle('selected', option.querySelector('input')?.checked));
+          $('submitTeamAnswer').disabled = false;
+        }));
         $('submitTeamAnswer').addEventListener('click', () => {
-          const choice = $('teamAnswerChoice').value;
-          if (choice === '') return toast('Select an option before submitting.');
+          if (selectedTeamAnswer === '') return toast('Select an option before submitting.');
           $('submitTeamAnswer').disabled = true;
-          socket.emit('team:answer:submit', { teamId, token: teamToken, optionIndex: Number(choice) });
+          answerArea.querySelectorAll('input[name="teamAnswerChoice"]').forEach(input => { input.disabled = true; });
+          socket.emit('team:answer:submit', { teamId, token: teamToken, optionIndex: Number(selectedTeamAnswer) });
         });
       }
     }
