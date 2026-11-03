@@ -255,6 +255,7 @@ function publicState(forHost = false) {
   const revealed = getSetting('revealed', '0') === '1';
 
   return {
+    serverNow: Date.now(),
     roomCode: getSetting('room_code', 'QUIZ'),
 
     questions: forHost ? questions : [],
