@@ -405,7 +405,7 @@
     downloadCSV('registered-teams.csv', rows);
   });
 
-  function renderQuestion(question, revealed = false, host = false) {
+  function renderQuestion(question, revealed = false, host = false, hideOptions = false) {
     if (!question) {
       return '<div class="empty">Waiting for the host to publish a question.</div>';
     }
@@ -418,16 +418,18 @@
 
       <div class="question-title">${esc(question.text)}</div>
 
-      <div class="options">
-        ${(question.options || []).map((option, index) => `
-          <div class="option ${
-            revealed && Number(question.correct) === index ? 'correct' : ''
-          }">
-            <b>${'ABCD'[index]}</b>
-            ${esc(option)}
-          </div>
-        `).join('')}
-      </div>
+      ${hideOptions ? '' : `
+        <div class="options">
+          ${(question.options || []).map((option, index) => `
+            <div class="option ${
+              revealed && Number(question.correct) === index ? 'correct' : ''
+            }">
+              <b>${'ABCD'[index]}</b>
+              ${esc(option)}
+            </div>
+          `).join('')}
+        </div>
+      `}
 
       ${revealed && question.correct !== undefined ? `
         <p class="notice">
@@ -720,12 +722,12 @@
 
     $('projectorBuzzes').innerHTML = renderBuzzes(buzzes);
 
-    $('buzzerQuestion').innerHTML = renderQuestion(question, data.revealed, false);
-    $('projectorQuestion').innerHTML = renderQuestion(question, data.revealed, false);
-    $('buzzerOrder').innerHTML = renderBuzzes(buzzes);
-
     const myTeam = teams.find(team => team.id === teamId);
     const myAnswer = (data.answers || []).find(answer => answer.teamId === teamId);
+    const canSelectInline = Boolean(myTeam && !isHost && data.questionVisible && !data.revealed && !myAnswer && data.roundPhase === 'answering');
+    $('buzzerQuestion').innerHTML = renderQuestion(question, data.revealed, false, canSelectInline);
+    $('projectorQuestion').innerHTML = renderQuestion(question, data.revealed, false);
+    $('buzzerOrder').innerHTML = renderBuzzes(buzzes);
     let answerArea = $('teamAnswerArea');
     if (!answerArea || answerArea.parentElement !== $('buzzerQuestion')) {
       answerArea = document.createElement('div');
