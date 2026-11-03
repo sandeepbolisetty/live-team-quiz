@@ -516,6 +516,15 @@
       const remaining = data.roundDeadline ? Math.max(0, Math.ceil((data.roundDeadline - Date.now()) / 1000)) : 0;
       const value = data.roundDeadline ? `${phaseLabels[data.roundPhase] || 'Round'}: ${remaining}s` : (phaseLabels[data.roundPhase] || 'Waiting');
       ['buzzerTimer','teamTimer','projectorTimer'].forEach(id => { if ($(id)) $(id).textContent = value; });
+      const phaseDurations = { reading: 20, buzzer: 10, answering: 15 };
+      const total = phaseDurations[data.roundPhase] || 0;
+      const progress = total && data.roundDeadline ? Math.max(0, Math.min(1, 1 - remaining / total)) : (data.revealed ? 1 : 0);
+      if ($('stageSeconds')) $('stageSeconds').textContent = data.roundDeadline ? remaining : '—';
+      if ($('stageTimerRing')) {
+        $('stageTimerRing').style.setProperty('--timer-progress', (total && data.roundDeadline ? Math.max(0, Math.min(1, remaining / total)) * 360 : 0) + 'deg');
+        $('stageTimerRing').setAttribute('aria-label', data.roundDeadline ? remaining + ' seconds remaining' : 'No active countdown');
+      }
+      if ($('stageProgress')) $('stageProgress').style.width = (progress * 100) + '%';
       if (data.roundPhase !== lastSoundPhase) {
         lastSoundPhase = data.roundPhase;
         lastWarningSecond = null;
