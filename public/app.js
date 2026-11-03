@@ -726,8 +726,12 @@
 
     const myTeam = teams.find(team => team.id === teamId);
     const myAnswer = (data.answers || []).find(answer => answer.teamId === teamId);
-    const answerArea = $('teamAnswerArea');
-    if (answerArea && answerArea.parentElement !== $('buzzerQuestion')) $('buzzerQuestion').appendChild(answerArea);
+    let answerArea = $('teamAnswerArea');
+    if (!answerArea || answerArea.parentElement !== $('buzzerQuestion')) {
+      answerArea = document.createElement('div');
+      answerArea.id = 'teamAnswerArea';
+      $('buzzerQuestion').appendChild(answerArea);
+    }
     if (answerArea) {
       if (!myTeam || !data.questionVisible) {
         answerArea.innerHTML = '';
