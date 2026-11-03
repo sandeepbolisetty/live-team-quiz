@@ -553,7 +553,7 @@ io.on('connection', socket => {
 
     socket.data.teamId = team.id;
     if (isTeamEliminated(team.id)) {
-      socket.emit('team:eliminated', { teamName: team.name, reason: 'Three tab-switch violations.' });
+      socket.emit('team:eliminated', { teamName: team.name, reason: 'Your team reached the maximum allowed violation count.' });
       return;
     }
 
@@ -634,7 +634,7 @@ io.on('connection', socket => {
     if (!team || !token || hashToken(token) !== team.token_hash) return;
     if (!team.admitted || !socket.data.teamId || socket.data.teamId !== team.id ||
         getSetting('quiz_ended', '0') === '1' || getSetting('quiz_monitoring_started', '0') !== '1' ||
-        !questionVisible || !cameraServiceUrl || !cameraServiceToken) return;
+        !questionVisible || getSetting('revealed', '0') === '1' || !cameraServiceUrl || !cameraServiceToken) return;
     if (typeof image !== 'string' || !image.startsWith('data:image/jpeg;base64,') || image.length > 420000) return;
     const previous = cameraFrameTimes.get(team.id) || 0;
     if (Date.now() - previous < 1400) return;
