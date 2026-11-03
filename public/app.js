@@ -11,6 +11,7 @@
   let lastWarningSecond = null;
   let toastTimer;
   let buzzerCountdownInterval = null;
+  let serverClockOffsetMs = 0;
   let monitoringStarted = false;
   let quizEnded = false;
   let participantEliminated = false;
@@ -479,6 +480,9 @@
 
   function render(data) {
     if (!data) return;
+    if (Number.isFinite(Number(data.serverNow))) {
+      serverClockOffsetMs = Number(data.serverNow) - Date.now();
+    }
     if (participantEliminated || (!isHost && participantInLobby)) return;
 
     quizEnded = Boolean(data.quizEnded);
@@ -525,7 +529,7 @@
     if (buzzerCountdownInterval) clearInterval(buzzerCountdownInterval);
     const phaseLabels = { hidden: 'Waiting', reading: 'Read question', buzzer: 'Buzz now', answering: 'Submit answer', 'awaiting-reveal': 'Time up', revealed: 'Complete', ended: 'Test ended' };
     const updateRoundCountdown = () => {
-      const remaining = data.roundDeadline ? Math.max(0, Math.ceil((data.roundDeadline - Date.now()) / 1000)) : 0;
+      const remaining = data.roundDeadline ? Math.max(0, Math.ceil((data.roundDeadline - (Date.now() + serverClockOffsetMs)) / 1000)) : 0;
       const value = data.roundDeadline ? `${phaseLabels[data.roundPhase] || 'Round'}: ${remaining}s` : (phaseLabels[data.roundPhase] || 'Waiting');
       ['buzzerTimer','teamTimer','projectorTimer'].forEach(id => { if ($(id)) $(id).textContent = value; });
       const phaseDurations = { reading: 20, buzzer: 10, answering: 15 };
@@ -704,7 +708,7 @@
     }
     if ($('stageQuestionCount')) $('stageQuestionCount').textContent = question ? 'QUESTION ' + (Number(data.currentIndex || 0) + 1) + ' / ' + (data.questionCount ?? questions.length) : 'QUESTION —';
     if ($('stageHint')) $('stageHint').textContent = data.roundPhase === 'buzzer' ? 'Buzz now! The fastest teams get to answer.' : data.roundPhase === 'answering' ? 'Selected teams: submit your answer before time runs out.' : data.roundPhase === 'awaiting-reveal' ? 'The host will reveal the correct answer shortly.' : data.roundPhase === 'revealed' ? 'Round complete. Check the correct answer on screen.' : data.roundPhase === 'reading' ? 'Read carefully. Get ready to buzz.' : 'The host will start the next round shortly.';
-    const stageRemaining = data.roundDeadline ? Math.max(0, Math.ceil((data.roundDeadline - Date.now()) / 1000)) : 0;
+    const stageRemaining = data.roundDeadline ? Math.max(0, Math.ceil((data.roundDeadline - (Date.now() + serverClockOffsetMs)) / 1000)) : 0;
     const stageTotal = stageDurations[data.roundPhase] || 0;
     if ($('stageSeconds')) $('stageSeconds').textContent = data.roundDeadline ? stageRemaining : '—';
     if ($('stageTimerRing')) $('stageTimerRing').style.setProperty('--timer-progress', (stageTotal ? Math.max(0, Math.min(1, stageRemaining / stageTotal)) * 360 : 0) + 'deg');
