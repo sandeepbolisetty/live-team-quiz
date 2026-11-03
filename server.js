@@ -68,6 +68,18 @@ CREATE TABLE IF NOT EXISTS quiz_violations (
   created_at TEXT NOT NULL,
   eliminated INTEGER NOT NULL DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS camera_violations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  team_id TEXT NOT NULL,
+  team_name TEXT NOT NULL,
+  violation_number INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  confidence REAL NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  eliminated INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY(team_id) REFERENCES teams(id) ON DELETE CASCADE
+);
 `);
 
 try { db.exec('ALTER TABLE teams ADD COLUMN admitted INTEGER NOT NULL DEFAULT 0'); } catch (error) {
@@ -196,6 +208,8 @@ const hashToken = token =>
 function isTeamEliminated(teamId) {
   return Boolean(db.prepare(
     'SELECT 1 FROM quiz_violations WHERE team_id = ? AND eliminated = 1 LIMIT 1'
+  ).get(teamId) || db.prepare(
+    'SELECT 1 FROM camera_violations WHERE team_id = ? AND eliminated = 1 LIMIT 1'
   ).get(teamId));
 }
 
@@ -308,6 +322,13 @@ function publicState(forHost = false) {
           FROM quiz_violations
           ORDER BY id DESC
         `).all().map(item => ({ ...item, eliminated: Boolean(item.eliminated) }))
+      : [],
+    cameraViolations: forHost
+      ? db.prepare(`
+          SELECT id, team_id, team_name, violation_number, reason, confidence, created_at, eliminated
+          FROM camera_violations
+          ORDER BY id DESC
+        `).all().map(item => ({ ...item, eliminated: Boolean(item.eliminated) }))
       : []
   };
 }
@@ -412,6 +433,7 @@ io.on('connection', socket => {
       buzzerDeadline = null;
       db.prepare('DELETE FROM teams').run();
       db.prepare('DELETE FROM quiz_violations').run();
+      db.prepare('DELETE FROM camera_violations').run();
       if (socket.id === hostSocketId) hostSocketId = null;
       io.emit('quiz:session-reset');
     }
@@ -531,7 +553,7 @@ io.on('connection', socket => {
 
     socket.data.teamId = team.id;
     if (isTeamEliminated(team.id)) {
-      socket.emit('team:eliminated', { teamName: team.name, reason: 'Three tab-switch violations.' });
+      socket.emit('team:eliminated', { teamName: team.name, reason: 'Your team reached the maximum allowed violation count.' });
       return;
     }
 
@@ -597,6 +619,70 @@ io.on('connection', socket => {
       }
     }
     broadcast();
+  });
+
+
+  // SERVER-SIDE CAMERA DEVICE DETECTION. Only JPEG snapshots from the
+  // participant's explicitly enabled camera are forwarded; frames are never stored.
+  const cameraFrameTimes = new Map();
+  const cameraDetectionHits = new Map();
+  const cameraServiceUrl = String(process.env.CAMERA_SERVICE_URL || '').replace(/\/$/, '');
+  const cameraServiceToken = process.env.CAMERA_SERVICE_TOKEN || '';
+
+  socket.on('team:camera:frame', async ({ teamId, token, image } = {}) => {
+    const team = db.prepare('SELECT id, name, token_hash, admitted FROM teams WHERE id = ?').get(teamId);
+    if (!team || !token || hashToken(token) !== team.token_hash) return;
+    if (!team.admitted || !socket.data.teamId || socket.data.teamId !== team.id ||
+        getSetting('quiz_ended', '0') === '1' || getSetting('quiz_monitoring_started', '0') !== '1' ||
+        !questionVisible || getSetting('revealed', '0') === '1' || !cameraServiceUrl || !cameraServiceToken) return;
+    if (typeof image !== 'string' || !image.startsWith('data:image/jpeg;base64,') || image.length > 420000) return;
+    const previous = cameraFrameTimes.get(team.id) || 0;
+    if (Date.now() - previous < 1400) return;
+    cameraFrameTimes.set(team.id, Date.now());
+    try {
+      const response = await fetch(cameraServiceUrl + '/detect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cameraServiceToken },
+        body: JSON.stringify({ image: image.split(',')[1] }),
+        signal: AbortSignal.timeout(9000)
+      });
+      if (!response.ok) throw new Error('Camera detector returned HTTP ' + response.status);
+      const detection = await response.json();
+      const phone = (detection.detections || []).find(item =>
+        String(item.label || '').toLowerCase() === 'cell phone' && Number(item.confidence) >= 0.55
+      );
+      if (!phone || isTeamEliminated(team.id)) {
+        const hits = cameraDetectionHits.get(team.id) || [];
+        cameraDetectionHits.set(team.id, hits.filter(time => Date.now() - time < 8000));
+        return;
+      }
+      const hits = (cameraDetectionHits.get(team.id) || []).filter(time => Date.now() - time < 8000);
+      hits.push(Date.now());
+      cameraDetectionHits.set(team.id, hits);
+      if (hits.length < 3) return;
+      cameraDetectionHits.set(team.id, []);
+      const latest = db.prepare('SELECT created_at FROM camera_violations WHERE team_id = ? ORDER BY id DESC LIMIT 1').get(team.id);
+      if (latest && Date.now() - Date.parse(latest.created_at) < 20000) return;
+      const count = db.prepare('SELECT COUNT(*) AS count FROM camera_violations WHERE team_id = ?').get(team.id).count;
+      const violationNumber = count + 1;
+      const eliminated = violationNumber >= 3;
+      const reason = 'YOLO detected a possible mobile phone in the camera view across multiple frames.';
+      db.prepare(`
+        INSERT INTO camera_violations(team_id, team_name, violation_number, reason, confidence, created_at, eliminated)
+        VALUES(?, ?, ?, ?, ?, ?, ?)
+      `).run(team.id, team.name, violationNumber, reason, Number(phone.confidence), now(), eliminated ? 1 : 0);
+      const result = { teamName: team.name, count: violationNumber, eliminated, reason, type: 'camera' };
+      socket.emit('team:camera:result', result);
+      if (eliminated) {
+        for (const client of io.sockets.sockets.values()) {
+          if (client.data.teamId === team.id) client.emit('team:eliminated', result);
+        }
+      }
+      broadcast();
+    } catch (error) {
+      socket.emit('team:camera:status', { ok: false, message: 'Camera detection service is temporarily unavailable.' });
+      console.error('Camera detection error:', error.message);
+    }
   });
 
   // TEAM BUZZER: ANY REGISTERED TEAM MAY BUZZ DURING THE 10-SECOND WINDOW
