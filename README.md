@@ -113,3 +113,20 @@ This project is intended for educational purposes and quiz competitions.
 
 **Project Name:** Live Team Quiz System  
 **Purpose:** Online team quiz competitions with real-time buzzer functionality.
+
+
+## Camera-Based Mobile-Phone Detection (YOLO)
+
+The optional camera-monitoring deployment uses a separate Python service defined in `render.yaml`.
+
+1. Deploy the repository using the Render Blueprint so both `live-team-quiz` and `live-team-quiz-camera` services are created.
+2. Generate one long random secret (at least 32 characters).
+3. Set `CAMERA_SERVICE_TOKEN` to that exact same secret in **both** Render services.
+4. In the Node service, set `CAMERA_SERVICE_URL` to the actual HTTPS URL of the Python camera service.
+5. Redeploy both services and check their `/health` endpoints.
+
+Participants must explicitly accept the camera notice and grant browser camera permission. The browser sends low-resolution JPEG snapshots only while a quiz question is visible. The Python service runs YOLO in memory and does not save submitted images or video. Only warning events, confidence values, and timestamps are stored in the quiz database.
+
+The detector looks for the COCO `cell phone` class. It requires repeated detections across multiple frames before recording a warning; two warnings are followed by elimination on the third camera warning. This is an imperfect visual detector: it can miss phones and can produce false positives. A camera detection is not proof of misconduct, so the host should review the recorded event and provide a way to challenge mistakes. Participants should use a separate device for the quiz when possible, keep their own quiz phone outside the camera view, and position the camera to show the relevant area without unnecessarily capturing other people.
+
+The Python service uses a Render Standard instance because computer-vision model inference requires more memory and CPU than the Node quiz server. Confirm the current Render plan price before deploying.
