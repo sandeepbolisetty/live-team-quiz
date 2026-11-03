@@ -100,6 +100,13 @@ if (!getSetting('revealed')) setSetting('revealed', '0');
 if (!getSetting('quiz_ended')) setSetting('quiz_ended', '0');
 if (!getSetting('quiz_monitoring_started')) setSetting('quiz_monitoring_started', '0');
 
+// Runtime round timers do not survive a server restart. Clear persisted
+// buzzer/reveal flags so a reconnecting host never sees a phantom live round.
+// Questions and the selected question index remain untouched; the host must
+// explicitly press "Reveal question / Start round" to begin a round.
+setSetting('buzzer_open', '0');
+setSetting('revealed', '0');
+
 let buzzes = [];
 let hostSocketId = null;
 let answerModeOpen = false;
