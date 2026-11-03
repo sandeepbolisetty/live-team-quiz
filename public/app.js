@@ -78,7 +78,7 @@
     if (cameraScanTimer) clearInterval(cameraScanTimer);
     cameraScanTimer = setInterval(() => {
       if (!participantCameraStream || !monitoringStarted || quizEnded || participantEliminated ||
-          !latest?.questionVisible || cameraScanBusy || document.hidden) return;
+          !latest?.questionVisible || latest?.revealed || cameraScanBusy || document.hidden) return;
       const video = $('participantCameraPreview');
       if (!video || video.readyState < 2 || !video.videoWidth) return;
       const canvas = document.createElement('canvas');
@@ -463,6 +463,9 @@
   socket.on('quiz:ended', () => {
     quizEnded = true;
     monitoringStarted = false;
+    stopCameraScanning();
+    if (participantCameraStream) participantCameraStream.getTracks().forEach(track => track.stop());
+    participantCameraStream = null;
     toast('The host has ended the test. You may now leave the quiz page.');
   });
 
