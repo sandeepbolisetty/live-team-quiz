@@ -55,7 +55,7 @@
         video.srcObject = participantCameraStream;
         await video.play().catch(() => {});
       }
-      $('cameraStatus').textContent = 'Camera enabled — snapshots are checked only while a question is visible.';
+      $('cameraStatus').textContent = 'Camera enabled — waiting for a question to test the YOLO connection.';
       $('enableCamera').textContent = 'Camera enabled';
       $('enableCamera').disabled = true;
       startCameraScanning();
@@ -82,10 +82,10 @@
       const video = $('participantCameraPreview');
       if (!video || video.readyState < 2 || !video.videoWidth) return;
       const canvas = document.createElement('canvas');
-      canvas.width = 320;
-      canvas.height = 240;
+      canvas.width = 640;
+      canvas.height = 480;
       canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-      const image = canvas.toDataURL('image/jpeg', 0.5);
+      const image = canvas.toDataURL('image/jpeg', 0.68);
       cameraScanBusy = true;
       socket.emit('team:camera:frame', { teamId, token: teamToken, image });
       setTimeout(() => { cameraScanBusy = false; }, 1800);

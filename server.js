@@ -634,8 +634,15 @@ io.on('connection', socket => {
     if (!team || !token || hashToken(token) !== team.token_hash) return;
     if (!team.admitted || !socket.data.teamId || socket.data.teamId !== team.id ||
         getSetting('quiz_ended', '0') === '1' || getSetting('quiz_monitoring_started', '0') !== '1' ||
-        !questionVisible || getSetting('revealed', '0') === '1' || !cameraServiceUrl || !cameraServiceToken) return;
-    if (typeof image !== 'string' || !image.startsWith('data:image/jpeg;base64,') || image.length > 420000) return;
+        !questionVisible || getSetting('revealed', '0') === '1') return;
+    if (!cameraServiceUrl || !cameraServiceToken) {
+      socket.emit('team:camera:status', { ok: false, message: 'YOLO service is not configured on Render. Ask the host to check CAMERA_SERVICE_URL and CAMERA_SERVICE_TOKEN.' });
+      return;
+    }
+    if (typeof image !== 'string' || !image.startsWith('data:image/jpeg;base64,') || image.length > 650000) {
+      socket.emit('team:camera:status', { ok: false, message: 'Camera snapshot was invalid or too large. Check camera permissions and try again.' });
+      return;
+    }
     const previous = cameraFrameTimes.get(team.id) || 0;
     if (Date.now() - previous < 1400) return;
     cameraFrameTimes.set(team.id, Date.now());
@@ -649,8 +656,9 @@ io.on('connection', socket => {
       if (!response.ok) throw new Error('Camera detector returned HTTP ' + response.status);
       const detection = await response.json();
       const phone = (detection.detections || []).find(item =>
-        String(item.label || '').toLowerCase() === 'cell phone' && Number(item.confidence) >= 0.55
+        String(item.label || '').toLowerCase() === 'cell phone' && Number(item.confidence) >= 0.30
       );
+      socket.emit('team:camera:status', { ok: true, message: phone ? 'YOLO service connected — possible phone detected; checking consecutive frames.' : 'YOLO service connected — no phone found in this snapshot.' });
       if (!phone || isTeamEliminated(team.id)) {
         const hits = cameraDetectionHits.get(team.id) || [];
         cameraDetectionHits.set(team.id, hits.filter(time => Date.now() - time < 8000));
@@ -680,7 +688,7 @@ io.on('connection', socket => {
       }
       broadcast();
     } catch (error) {
-      socket.emit('team:camera:status', { ok: false, message: 'Camera detection service is temporarily unavailable.' });
+      socket.emit('team:camera:status', { ok: false, message: 'YOLO request failed: ' + String(error.message || 'unknown error').slice(0, 140) });
       console.error('Camera detection error:', error.message);
     }
   });
