@@ -736,6 +736,75 @@ main nav button:hover{
 }
 </style>
 
+
+<style>
+/* High-visibility participant buzzer */
+#buzzButton.buzzer{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:min(100%,440px);
+  min-height:112px;
+  margin:24px auto;
+  padding:24px 32px;
+  border:4px solid #fff!important;
+  border-radius:28px!important;
+  background:linear-gradient(135deg,#ffea00 0%,#ff9d00 38%,#ff3d38 72%,#d90055 100%)!important;
+  color:#fff!important;
+  font-size:clamp(2.2rem,7vw,3.4rem)!important;
+  font-weight:1000!important;
+  letter-spacing:.12em;
+  text-shadow:0 3px 0 rgba(112,24,0,.35),0 5px 16px rgba(90,0,0,.28);
+  box-shadow:0 0 0 5px rgba(255,171,0,.22),0 14px 0 #a92a24,0 22px 38px rgba(229,55,27,.38)!important;
+  transition:transform .14s ease,filter .14s ease,box-shadow .14s ease;
+  isolation:isolate;
+  overflow:hidden;
+}
+#buzzButton.buzzer::before{
+  content:"";
+  position:absolute;
+  inset:7px;
+  border:2px solid rgba(255,255,255,.42);
+  border-radius:20px;
+  pointer-events:none;
+}
+#buzzButton.buzzer:not(:disabled){
+  cursor:pointer;
+  animation:buzzerGlow 1.5s ease-in-out infinite;
+}
+#buzzButton.buzzer:not(:disabled):hover{
+  filter:brightness(1.12) saturate(1.12);
+  transform:translateY(-3px) scale(1.015);
+}
+#buzzButton.buzzer:not(:disabled):active{
+  transform:translateY(7px) scale(.98);
+  box-shadow:0 0 0 3px rgba(255,171,0,.18),0 5px 0 #a92a24,0 10px 20px rgba(229,55,27,.3)!important;
+  animation:none;
+}
+#buzzButton.buzzer:disabled{
+  opacity:.48;
+  filter:grayscale(.55) saturate(.65);
+  box-shadow:0 5px 14px rgba(0,0,0,.12)!important;
+  cursor:not-allowed;
+}
+#buzzButton.buzzer:focus-visible{
+  outline:4px solid #2563eb;
+  outline-offset:7px;
+}
+@keyframes buzzerGlow{
+  0%,100%{box-shadow:0 0 0 5px rgba(255,171,0,.2),0 14px 0 #a92a24,0 22px 38px rgba(229,55,27,.32)!important}
+  50%{box-shadow:0 0 0 10px rgba(255,171,0,.12),0 14px 0 #a92a24,0 24px 48px rgba(229,55,27,.5)!important}
+}
+@media(max-width:520px){
+  #buzzButton.buzzer{min-height:96px;margin:20px auto;padding:20px;font-size:2.35rem!important;border-radius:23px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  #buzzButton.buzzer:not(:disabled){animation:none}
+  #buzzButton.buzzer{transition:none}
+}
+</style>
+
 </head>
 <body>
 <header class="vfstr-masthead">
