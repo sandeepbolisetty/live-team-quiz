@@ -948,14 +948,14 @@ main nav button:hover{
 <section id="register" class="view">
  <div class="grid2">
   <div class="card"><h2>Register your team</h2><p class="muted">Enter all members and choose the representative whose phone will be used to buzz. After registration, wait in the lobby until the host admits your team.</p>
-   <form id="registerForm"><div class="field"><label>Team name</label><input id="teamName" maxlength="50" required placeholder="e.g. Robo Rangers"></div><div class="field"><label>Team members</label><div id="members"></div><button type="button" id="addMember">+ Add member</button></div><div class="field"><label>Buzzer representative</label><select id="representative"></select></div><button class="primary">Register team</button></form><div id="registerResult"></div>
+   <form id="registerForm"><div class="field"><label>Team name</label><input id="teamName" maxlength="50" required placeholder="e.g. Robo Rangers"></div><div class="field"><label>Team members</label><div id="members"></div><button type="button" id="addMember">+ Add member</button></div><div class="field"><label>Buzzer representative</label><select id="representative"></select></div><div class="notice warn"><b>Camera monitoring consent</b><p>The front camera will be used to check for possible mobile-phone presence only while quiz questions are visible. Temporary low-resolution snapshots are sent to the quiz detection service; video is not recorded or stored. Detection can make mistakes. You can stop camera access in your browser settings.</p><label><input id="cameraConsent" type="checkbox" required> I understand and agree to camera monitoring during the quiz.</label></div><button class="primary">Enable camera &amp; register team</button></form><div id="registerResult"></div>
   </div>
   <div class="card"><h2>Teams registered</h2><p class="muted">Member details are private and are not displayed here.</p><div id="publicTeams"></div></div>
  </div>
 </section>
 <section id="buzzer" class="view">
  <div class="grid2">
-  <div class="card"><h2>Team buzzer</h2><div id="teamSession"></div><div id="teamTimer" class="round-timer">Waiting</div><div id="buzzerQuestion" class="question-box"></div><button id="buzzButton" class="buzzer" disabled>BUZZ!</button><div id="buzzerMessage" class="notice">Register this device as a team's representative first.</div><div id="teamAnswerArea"></div></div>
+  <div class="card"><h2>Team buzzer</h2><div id="teamSession"></div><div class="notice"><b>Camera monitoring</b><p id="cameraStatus">Enable the front camera before the first question. Camera snapshots are checked only while a question is visible.</p><video id="participantCameraPreview" autoplay muted playsinline style="display:block;width:100%;max-width:260px;border-radius:12px;background:#111;min-height:100px;object-fit:cover"></video><button id="enableCamera" type="button">Enable camera</button></div><div id="teamTimer" class="round-timer">Waiting</div><div id="buzzerQuestion" class="question-box"></div><button id="buzzButton" class="buzzer" disabled>BUZZ!</button><div id="buzzerMessage" class="notice">Register this device as a team's representative first.</div><div id="teamAnswerArea"></div></div>
   <div class="card"><h2>Buzz order</h2><div id="buzzerOrder"></div></div>
  </div>
 </section>
@@ -991,5 +991,5 @@ function tryLogoFallback(img, kind){
   }
 }
 </script>
-<script src="/socket.io/socket.io.js"></script><script src="/app.js?v=inline-answer-question-20261103-1"></script>
+<script src="/socket.io/socket.io.js"></script><script src="/app.js?v=yolo-camera-monitoring-20261103-1"></script>
 </body></html>
