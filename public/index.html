@@ -828,6 +828,53 @@ main nav button:hover{
 @media(max-width:600px){.stage-topline{align-items:flex-start;flex-direction:column}.stage-top-actions{width:100%;justify-content:space-between}.stage-fullscreen-btn{padding:8px 11px!important}.stage-question-panel{min-height:240px}}
 </style>
 
+
+<style>
+/* Projector question card uses a light surface: force dark, readable question text. */
+#projector .stage-question-box{
+  background:linear-gradient(145deg,#ffffff 0%,#f3f7ff 100%)!important;
+  color:#20365f!important;
+  border:1px solid #d6e1f5!important;
+  border-radius:18px!important;
+  padding:clamp(20px,2.2vw,32px)!important;
+  box-shadow:0 16px 38px rgba(0,0,0,.16)!important;
+}
+#projector .stage-question-box .question-title{
+  display:block!important;
+  color:#142b52!important;
+  -webkit-text-fill-color:#142b52!important;
+  opacity:1!important;
+  font-weight:850!important;
+  text-shadow:none!important;
+  line-height:1.28!important;
+  margin:22px 0 30px!important;
+}
+#projector .stage-question-box .badge{
+  background:#eaf0ff!important;
+  color:#24478e!important;
+  border:1px solid #cbd8fb!important;
+}
+#projector .stage-question-box .option{
+  background:#fff!important;
+  color:#263e69!important;
+  border:1px solid #d3def4!important;
+  box-shadow:0 4px 12px rgba(26,54,105,.045)!important;
+}
+#projector .stage-question-box .option>b{
+  background:#e0f7f7!important;
+  color:#087f80!important;
+}
+#projector .stage-question-box .option.correct{
+  background:#e3f9ed!important;
+  color:#145b38!important;
+  border-color:#65c98f!important;
+}
+#projector .stage-question-box .notice{
+  color:#174b36!important;
+  background:#e9f9ef!important;
+}
+</style>
+
 </head>
 <body>
 <header class="vfstr-masthead">
