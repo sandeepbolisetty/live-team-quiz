@@ -686,13 +686,17 @@
         button.addEventListener('click', () => socket.emit('host:team:admit', { teamId: button.dataset.admitTeam }));
       });
 
-      const violationRows = data.violations || [];
+      const violationRows = [
+        ...(data.violations || []).map(item => ({ ...item, violationType: 'Tab switch' })),
+        ...(data.cameraViolations || []).map(item => ({ ...item, violationType: 'Camera / YOLO' }))
+      ].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
       $('hostViolations').innerHTML = violationRows.length
         ? table(`
-          <thead><tr><th>Team</th><th>Violation</th><th>Reason</th><th>Status</th><th>Time</th></tr></thead>
+          <thead><tr><th>Team</th><th>Type</th><th>Violation</th><th>Reason</th><th>Status</th><th>Time</th></tr></thead>
           <tbody>${violationRows.map(item => `
             <tr>
               <td><b>${esc(item.team_name)}</b></td>
+              <td>${esc(item.violationType)}</td>
               <td>${item.violation_number} of 3</td>
               <td>${esc(item.reason)}</td>
               <td><span class="badge ${item.eliminated ? 'red' : 'warn'}">${item.eliminated ? 'Eliminated' : 'Warning'}</span></td>
@@ -700,7 +704,7 @@
             </tr>
           `).join('')}</tbody>
         `)
-        : '<div class="empty">No tab-switch warnings or eliminations recorded.</div>';
+        : '<div class="empty">No tab-switch or camera-detection warnings recorded.</div>';
 
       document.querySelectorAll('[data-remove-team]').forEach(button => {
         button.addEventListener('click', () => {
@@ -983,13 +987,14 @@
   $('exportViolations').addEventListener('click', () => {
     if (!isHost || !latest) return toast('Host login required.');
     const rows = [
-      ['Team name', 'Violation number', 'Reason', 'Status', 'Timestamp'],
+      ['Team name', 'Violation type', 'Violation number', 'Reason', 'Status', 'Confidence', 'Timestamp'],
       ...(latest.violations || []).map(item => [
-        item.team_name,
-        item.violation_number,
-        item.reason,
-        item.eliminated ? 'Eliminated' : 'Warning',
-        item.created_at
+        item.team_name, 'Tab switch', item.violation_number, item.reason,
+        item.eliminated ? 'Eliminated' : 'Warning', '', item.created_at
+      ]),
+      ...(latest.cameraViolations || []).map(item => [
+        item.team_name, 'Camera / YOLO', item.violation_number, item.reason,
+        item.eliminated ? 'Eliminated' : 'Warning', item.confidence, item.created_at
       ])
     ];
     downloadCSV('quiz-tab-switch-violations.csv', rows);
