@@ -875,6 +875,24 @@ main nav button:hover{
 }
 </style>
 
+
+<style>
+/* Participant answer controls sit directly beneath the live question. */
+#buzzerQuestion #teamAnswerArea{margin-top:22px}
+.inline-answer-panel{padding:clamp(15px,3vw,24px);border:2px solid #a9c8ff;border-radius:18px;background:linear-gradient(145deg,#f7faff,#eaf2ff);color:#17345f;box-shadow:0 10px 26px rgba(33,79,145,.10)}
+.inline-answer-panel h3{margin:0 0 7px;color:#17345f;font-size:1.25rem}
+.inline-answer-panel>p{margin:0 0 15px;color:#536b8e;font-size:.94rem}
+.inline-answer-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.inline-answer-option{display:flex;align-items:center;gap:12px;min-height:62px;padding:12px 14px;border:2px solid #d4e0f3;border-radius:13px;background:#fff;color:#233b61;cursor:pointer;font-weight:650;transition:border-color .15s,background .15s,transform .15s}
+.inline-answer-option input{width:19px;height:19px;accent-color:#245fe8;flex:0 0 auto}
+.inline-answer-option b{display:grid;place-items:center;width:32px;height:32px;flex:0 0 32px;border-radius:9px;background:#e8efff;color:#2454ad}
+.inline-answer-option.selected{border-color:#2865e8;background:#eaf1ff;box-shadow:0 0 0 2px rgba(40,101,232,.10)}
+.inline-answer-option:has(input:checked){border-color:#2865e8;background:#eaf1ff}
+.inline-answer-panel button{width:100%;margin-top:16px;min-height:50px;font-weight:850}
+.inline-answer-panel button:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:560px){.inline-answer-options{grid-template-columns:1fr}.inline-answer-option{min-height:56px}}
+</style>
+
 </head>
 <body>
 <header class="vfstr-masthead">
@@ -973,5 +991,5 @@ function tryLogoFallback(img, kind){
   }
 }
 </script>
-<script src="/socket.io/socket.io.js"></script><script src="/app.js?v=server-clock-20-10-15-20261103-2"></script>
+<script src="/socket.io/socket.io.js"></script><script src="/app.js?v=inline-answer-question-20261103-1"></script>
 </body></html>
