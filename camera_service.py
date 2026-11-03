@@ -43,7 +43,7 @@ def detect(payload: DetectRequest, authorization: str | None = Header(default=No
 
     # Only report the COCO 'cell phone' class. Inference is performed in memory;
     # the submitted frame is not written to disk or retained by this service.
-    results = model.predict(frame, imgsz=320, conf=0.45, classes=[67], verbose=False)
+    results = model.predict(frame, imgsz=640, conf=0.20, classes=[67], verbose=False)
     detections = []
     for result in results:
         if result.boxes is None:
