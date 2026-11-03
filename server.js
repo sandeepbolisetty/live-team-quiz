@@ -625,6 +625,7 @@ io.on('connection', socket => {
   // SERVER-SIDE CAMERA DEVICE DETECTION. Only JPEG snapshots from the
   // participant's explicitly enabled camera are forwarded; frames are never stored.
   const cameraFrameTimes = new Map();
+  const cameraDetectionHits = new Map();
   const cameraServiceUrl = String(process.env.CAMERA_SERVICE_URL || '').replace(/\/$/, '');
   const cameraServiceToken = process.env.CAMERA_SERVICE_TOKEN || '';
 
